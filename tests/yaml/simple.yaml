@@ -1,0 +1,22 @@
+title: Simple example
+description: A simple example YAML input file
+steps:
+  s1:
+    title: Do something
+    duration: 10 min
+    waiting: 30 min
+    description: Do something first
+    assertions:
+      - The foo should be tightly inserted into the bar
+    tools:
+      tdp: {name: 'Quabuble', quantity: 1}
+    parts:
+      nut: {name: 'Nut', quantity: 2}
+  s3:
+    title: Do something else
+    requires: s1
+    duration: 2 min
+    description: Then do something next
+    parts:
+      bolt: {name: 'Bolt'}
+      nut: {name: 'Nut', quantity: 3}
