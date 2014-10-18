@@ -27,7 +27,7 @@ def validate(inst,schema_name):
     val = jsonschema.Draft4Validator(schema,resolver=res)
     val.validate(inst)
 
-def add_object_from_YAML(graph,inst):
+def add_object_from_YAML(obj_store,inst):
     quantity = inst.pop("quantity",1)
     optional = inst.pop("optional",False)
 
@@ -37,10 +37,32 @@ def add_object_from_YAML(graph,inst):
 
     obj_id = m.hexdigest()
 
-    if not obj_id in graph.objects:
-        graph.add_object(core.Object(obj_id,**inst))
+    if not obj_store.contains(obj_id):
+        obj_store.add_object(core.Object(obj_id,**inst))
 
     return core.ObjectReference(obj_id,quantity=quantity,optional=optional)
+
+def add_file_from_YAML(res_store,inst):
+    path = inst["path"]
+
+    res_id = hashlib.sha512(path).hexdigest()
+
+    if not res_store.contains(res_id):
+        res_store.add_resource(core.File(res_id,filename=basename(path)),path)
+
+    return core.ResourceReference(res_id)
+
+def add_image_from_YAML(res_store,inst):
+    path = inst["filename"]
+    ext = splitext(path)[1]
+    alt = inst.get("alt","")
+
+    res_id = hashlib.sha512(path).hexdigest()
+
+    if not res_store.contains(res_id):
+        res_store.add_resource(core.Image(res_id,extension=ext,alt=alt),path)
+
+    return core.ResourceReference(res_id)
 
 def graph_from_YAML(filename):
     inst = list(yaml.load_all(open(filename,"r","utf8")))[0]
@@ -48,7 +70,10 @@ def graph_from_YAML(filename):
     #validate
     validate(inst,'ml.json')
 
-    g = core.Graph()
+    obj_store = core.MemoryObjectStore()
+    res_store = core.FileSystemResourceStore()
+
+    g = core.Graph(obj_store,res_store)
 
     for id,step_dict in inst["steps"].iteritems():
         if "waiting" in step_dict:
@@ -61,13 +86,23 @@ def graph_from_YAML(filename):
 
         parts = {}
         for key, inst in step_dict.get("parts",{}).iteritems():
-            parts[key] = add_object_from_YAML(g,inst)
+            parts[key] = add_object_from_YAML(obj_store,inst)
         step_dict["parts"] = parts
 
         tools = {}
         for key, inst in step_dict.get("tools",{}).iteritems():
-            tools[key] = add_object_from_YAML(g,inst)
+            tools[key] = add_object_from_YAML(obj_store,inst)
         step_dict["tools"] = tools
+
+        images = {}
+        for key, inst in step_dict.get("images",{}).iteritems():
+            images[key] = add_image_from_YAML(res_store,inst)
+        step_dict["images"] = images
+
+        files = {}
+        for key, inst in step_dict.get("files",{}).iteritems():
+            files[key] = add_file_from_YAML(res_store,inst)
+        step_dict["files"] = files
 
         step = core.GraphStep(id,**step_dict)
 

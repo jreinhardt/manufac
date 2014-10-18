@@ -8,6 +8,7 @@
     "properties" : {
       "path" : {"type" : "string", "description" : "Path of the file"}
     },
+    "required" : ["path"],
     "additionalProperties" : false
   }
 }
