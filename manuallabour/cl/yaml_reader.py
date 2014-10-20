@@ -28,14 +28,21 @@ def validate(inst,schema_name):
     val.validate(inst)
 
 def add_object_from_YAML(store,inst):
+    # Object Reference properties
     quantity = inst.pop("quantity",1)
     optional = inst.pop("optional",False)
 
+    # calculate obj id
     m = hashlib.sha512()
     m.update(inst.get('name'))
     m.update(inst.get('description',''))
-
     obj_id = m.hexdigest()
+
+    # prepare resources
+    images = []
+    for img in inst.get("images",[]):
+        images.append(add_image_from_YAML(store,img))
+    inst["images"] = images
 
     if not store.has_obj(obj_id):
         store.add_obj(core.Object(obj_id,**inst))

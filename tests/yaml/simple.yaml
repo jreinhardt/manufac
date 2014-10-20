@@ -11,7 +11,7 @@ steps:
     images:
       img: {filename: foobar.png, alt: A foobar}
     tools:
-      tdp: {name: Quabuble, quantity: 1}
+      tdp: {name: Quabuble, quantity: 1, images: [{filename: foobar.png, alt: A foobar}]}
     parts:
       nut: {name: Nut, quantity: 2}
       onut: {name: Nut, quantity: 2, optional: True}
