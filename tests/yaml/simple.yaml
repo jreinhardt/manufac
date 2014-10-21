@@ -15,6 +15,9 @@ steps:
     parts:
       nut: {name: Nut, quantity: 2}
       onut: {name: Nut, quantity: 2, optional: True}
+      bolt: {name: Bolt, quantity: 2}
+    results:
+      tnut: {name: Tightened Bolt Nut, quantity: 2}
   s3:
     title: Do something else
     requires: s1
@@ -23,3 +26,4 @@ steps:
     parts:
       bolt: {name: Bolt}
       nut: {name: Nut, quantity: 3}
+      tnut: {ref: s1.results.tnut, quantity: 2}

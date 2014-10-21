@@ -7,6 +7,7 @@ import json
 import jsonschema
 import pkg_resources
 import hashlib
+from copy import deepcopy
 
 import manuallabour.core as core
 
@@ -14,6 +15,8 @@ schema_dir = pkg_resources.resource_filename('manuallabour.cl','schema')
 
 TIME_RE = re.compile("(?:(\d*)\s?d(?:ays?)?\s?)?(?:(\d*)\s?h(?:ours?)?\s?)?(?:(\d*)\s?m(?:in(?:ute)?s?)?\s?)?(?:(\d*) ?s(?:econds?)?)?")
 TIME_ZIP = ('days','hours','minutes','seconds')
+
+REF_RE = re.compile("^([a-zA-Z][0-9a-zA-Z]*)\.results\.([a-zA-Z][0-9a-zA-Z]*)$")
 
 def parse_time(time):
     """
@@ -59,7 +62,7 @@ def validate(inst,schema_name):
     val = jsonschema.Draft4Validator(schema,resolver=res)
     val.validate(inst)
 
-def add_object_from_YAML(store,inst):
+def add_object_from_YAML(store,inst,created=False):
     # Object Reference properties
     quantity = inst.pop("quantity",1)
     optional = inst.pop("optional",False)
@@ -79,7 +82,42 @@ def add_object_from_YAML(store,inst):
     if not store.has_obj(obj_id):
         store.add_obj(core.Object(obj_id,**inst))
 
-    return core.ObjectReference(obj_id,quantity=quantity,optional=optional)
+    return core.ObjectReference(
+        obj_id,
+        quantity=quantity,
+        optional=optional,
+        created=created
+    )
+
+def resolve_reference(store,ref_inst,steps):
+    m = REF_RE.match(ref_inst.pop("ref"))
+    target_step = m.group(1)
+    target_key = m.group(2)
+    target_dict = deepcopy(steps[target_step]["results"][target_key])
+
+    # calculate obj id
+    m = hashlib.sha512()
+    m.update(target_dict.get('name'))
+    m.update(target_dict.get('description',''))
+    obj_id = m.hexdigest()
+
+    # prepare resources
+    images = []
+    for img in target_dict.get("images",[]):
+        images.append(add_image_from_YAML(store,img))
+    target_dict["images"] = images
+
+    #we don't need this information from the target reference, so discard it
+    target_dict.pop("quantity",None)
+    target_dict.pop("optional",None)
+
+    if not store.has_obj(obj_id):
+        store.add_obj(core.Object(obj_id,**target_dict))
+
+    quantity = ref_inst.get("quantity",1)
+    optional = ref_inst.get("optional",False)
+
+    return core.ObjectReference(obj_id, quantity=quantity, optional=optional)
 
 def add_file_from_YAML(store,inst):
     path = inst["path"]
@@ -123,23 +161,34 @@ def graph_from_YAML(filename):
             dependencies = [dependencies]
 
         parts = {}
-        for key, inst in step_dict.get("parts",{}).iteritems():
-            parts[key] = add_object_from_YAML(store,inst)
+        for key, p_dict in step_dict.get("parts",{}).iteritems():
+            if "ref" in p_dict:
+                parts[key] = resolve_reference(store,p_dict,inst["steps"])
+            else:
+                parts[key] = add_object_from_YAML(store,p_dict)
         step_dict["parts"] = parts
 
         tools = {}
-        for key, inst in step_dict.get("tools",{}).iteritems():
-            tools[key] = add_object_from_YAML(store,inst)
+        for key, t_dict in step_dict.get("tools",{}).iteritems():
+            if "ref" in t_dict:
+                tools[key] = resolve_reference(store,t_dict,inst["steps"])
+            else:
+                tools[key] = add_object_from_YAML(store,t_dict)
         step_dict["tools"] = tools
 
+        results = {}
+        for key, r_dict in step_dict.get("results",{}).iteritems():
+            results[key] = add_object_from_YAML(store,r_dict,created=True)
+        step_dict["results"] = results
+
         images = {}
-        for key, inst in step_dict.get("images",{}).iteritems():
-            images[key] = add_image_from_YAML(store,inst)
+        for key, i_dict in step_dict.get("images",{}).iteritems():
+            images[key] = add_image_from_YAML(store,i_dict)
         step_dict["images"] = images
 
         files = {}
-        for key, inst in step_dict.get("files",{}).iteritems():
-            files[key] = add_file_from_YAML(store,inst)
+        for key, f_dict in step_dict.get("files",{}).iteritems():
+            files[key] = add_file_from_YAML(store,f_dict)
         step_dict["files"] = files
 
         step = core.GraphStep(id,**step_dict)
