@@ -12,13 +12,45 @@ import manuallabour.core as core
 
 schema_dir = pkg_resources.resource_filename('manuallabour.cl','schema')
 
-time_re = re.compile("(?:(\d*)\s?d(?:ays?)?\s?)?(?:(\d*)\s?h(?:ours?)?\s?)?(?:(\d*)\s?m(?:in(?:ute)?s?)?\s?)?(?:(\d*) ?s(?:econds?)?)?")
-time_zip = ('days','hours','minutes','seconds')
+TIME_RE = re.compile("(?:(\d*)\s?d(?:ays?)?\s?)?(?:(\d*)\s?h(?:ours?)?\s?)?(?:(\d*)\s?m(?:in(?:ute)?s?)?\s?)?(?:(\d*) ?s(?:econds?)?)?")
+TIME_ZIP = ('days','hours','minutes','seconds')
 
 def parse_time(time):
-    match = time_re.match(time.strip())
-    components = dict(zip(time_zip,(int(v) for v in match.groups('0'))))
+    """
+    parse a string of the form
+    "x d[ay[s]] y h[our[s]] z m[inute[s]] w s[econd[s]]"
+    into a timedelta object
+    passes through None
+    """
+    if time is None:
+        return None
+    match = TIME_RE.match(time.strip())
+    components = dict(zip(TIME_ZIP,(int(v) for v in match.groups('0'))))
     return timedelta(**components)
+
+def format_time(time):
+    """
+    format a timedelta object in such a way that it can be recreated with
+    parse_time
+    passes through None
+    """
+    if time is None:
+        return None
+    res = []
+    if time.days > 0:
+        res.append("%d days" % time.days)
+    seconds = time.seconds
+    if seconds >= 3600:
+        res.append("%d hours" % (seconds / 3600))
+        seconds = seconds % 3600
+    if seconds >= 60:
+        res.append("%d minutes" % (seconds / 60))
+        seconds = seconds % 60
+    if seconds > 0:
+        res.append("%d seconds" % seconds)
+
+    return " ".join(res)
+
 
 def validate(inst,schema_name):
     schema_path = abspath(join(schema_dir,schema_name))
