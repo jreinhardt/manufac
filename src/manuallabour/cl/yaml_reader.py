@@ -9,7 +9,9 @@ import pkg_resources
 import hashlib
 from copy import deepcopy
 
-import manuallabour.core as core
+from manuallabour.core.stores import LocalMemoryStore
+from manuallabour.core.graph import Graph, GraphStep
+import manuallabour.core.common as common
 
 schema_dir = pkg_resources.resource_filename('manuallabour.cl','schema')
 
@@ -80,9 +82,9 @@ def add_object_from_YAML(store,inst,created=False):
     inst["images"] = images
 
     if not store.has_obj(obj_id):
-        store.add_obj(core.Object(obj_id,**inst))
+        store.add_obj(common.Object(obj_id,**inst))
 
-    return core.ObjectReference(
+    return common.ObjectReference(
         obj_id,
         quantity=quantity,
         optional=optional,
@@ -112,12 +114,12 @@ def resolve_reference(store,ref_inst,steps):
     target_dict.pop("optional",None)
 
     if not store.has_obj(obj_id):
-        store.add_obj(core.Object(obj_id,**target_dict))
+        store.add_obj(common.Object(obj_id,**target_dict))
 
     quantity = ref_inst.get("quantity",1)
     optional = ref_inst.get("optional",False)
 
-    return core.ObjectReference(obj_id, quantity=quantity, optional=optional)
+    return common.ObjectReference(obj_id, quantity=quantity, optional=optional)
 
 def add_file_from_YAML(store,inst):
     path = inst["path"]
@@ -125,9 +127,9 @@ def add_file_from_YAML(store,inst):
     res_id = hashlib.sha512(path).hexdigest()
 
     if not store.has_res(res_id):
-        store.add_res(core.File(res_id,filename=basename(path)),path)
+        store.add_res(File(res_id,filename=basename(path)),path)
 
-    return core.ResourceReference(res_id)
+    return Common.ResourceReference(res_id)
 
 def add_image_from_YAML(store,inst):
     path = inst["filename"]
@@ -137,9 +139,9 @@ def add_image_from_YAML(store,inst):
     res_id = hashlib.sha512(path).hexdigest()
 
     if not store.has_res(res_id):
-        store.add_res(core.Image(res_id,extension=ext,alt=alt),path)
+        store.add_res(common.Image(res_id,extension=ext,alt=alt),path)
 
-    return core.ResourceReference(res_id)
+    return common.ResourceReference(res_id)
 
 def graph_from_YAML(filename):
     inst = list(yaml.load_all(open(filename,"r","utf8")))[0]
@@ -147,9 +149,9 @@ def graph_from_YAML(filename):
     #validate
     validate(inst,'ml.json')
 
-    store = core.LocalMemoryStore()
+    store = LocalMemoryStore()
 
-    g = core.Graph(store)
+    g = Graph(store)
 
     for id,step_dict in inst["steps"].iteritems():
         if "waiting" in step_dict:
@@ -191,7 +193,7 @@ def graph_from_YAML(filename):
             files[key] = add_file_from_YAML(store,f_dict)
         step_dict["files"] = files
 
-        step = core.GraphStep(id,**step_dict)
+        step = GraphStep(id,**step_dict)
 
         g.add_step(step,dependencies)
 

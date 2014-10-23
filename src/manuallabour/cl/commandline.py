@@ -3,7 +3,7 @@ import sys
 from os.path import join,dirname
 
 from manuallabour.cl import yaml_reader
-from manuallabour.core import schedule_greedy, Schedule
+from manuallabour.core.schedulers import schedule_greedy, Schedule
 
 def main_function():
     parser = argparse.ArgumentParser(description="Tool for rendering beautiful step-by-step instructions")
@@ -21,6 +21,4 @@ def main_function():
     s = Schedule(steps,g.store,start)
 
     s.to_svg(args['output'])
-
-
 

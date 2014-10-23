@@ -15,12 +15,13 @@ with open(path.join(here, 'version'), encoding='utf-8') as f:
 setup(
     name='manuallabour-cl',
     version=version,
-    packages=find_packages(exclude=['tests','docs']),
-    namespace_packages=['manuallabour'],
+    packages=find_packages("src"),
+    package_dir={"" : "src"},
+    namespace_packages=['manuallabour','manuallabour.cl.importers'],
     description='Commandline interface for Manual Labour',
     long_description=long_description,
     install_requires = ['manuallabour','jsonschema','pyyaml'],
     entry_points={
-        'console_scripts': ['manuallabour = manuallabour.cl:main_function']
+        'console_scripts': ['manuallabour = manuallabour.cl.commandline:main_function']
     }
 )
