@@ -23,6 +23,10 @@ def mock_callback(fn,**kwargs):
     open(fn,'w','utf8').close()
     return ['tests/cache/test/dep1']
 
+def retry_callback(fn,**kwargs):
+    open(fn,'w','utf8').close()
+    return None
+
 class CacheTest(unittest.TestCase):
     def test_cold_start(self):
         rmtree('tests/cache/cold',True)
@@ -68,6 +72,37 @@ class CacheTest(unittest.TestCase):
         with FileCache('tests/cache/test') as fc:
             fc.process(callback,importer='test',extension='.tmp',arg=4)
             self.assertEqual(callback.call_count,2)
+
+    def test_retry(self):
+        rmtree('tests/cache/retry',True)
+        makedirs('tests/cache/retry')
+
+        #dependencies
+        with FileCache('tests/cache/retry') as fc:
+            #create a dependency
+            open('tests/cache/retry/dep1','w','utf8').close()
+            callback = CallCounter(retry_callback)
+
+            fc.process(callback,importer='test',extension='.tmp',arg=4)
+            self.assertEqual(callback.call_count,1)
+
+            fc.process(callback,importer='test',extension='.tmp',arg=4)
+            self.assertEqual(callback.call_count,2)
+
+            #Make sure new mtime differs from old one
+            sleep(0.1)
+            utime('tests/cache/test/dep1',None)
+
+            fc.process(callback,importer='test',extension='.tmp',arg=4)
+            self.assertEqual(callback.call_count,3)
+
+            fc.process(callback,importer='test',extension='.tmp',arg=4)
+            self.assertEqual(callback.call_count,4)
+
+        #reopen cache
+        with FileCache('tests/cache/test') as fc:
+            fc.process(callback,importer='test',extension='.tmp',arg=4)
+            self.assertEqual(callback.call_count,5)
 
     def test_clear(self):
         rmtree('tests/cache/clear',True)

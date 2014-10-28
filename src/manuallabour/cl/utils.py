@@ -42,7 +42,7 @@ class FileCache:
         calls the callable callback to create a file and returns its path.
         the callback must return a list of file paths the created file
         depends on and which make reexecution of the callback necessary if
-        modified.
+        modified. Alternatively None can be returned to retry 
         additional keyword arguments can be used to supply any information to
         callback and dependencies. An id of the calling importer is required
         and an extension for the resulting file is required.
@@ -70,6 +70,9 @@ class FileCache:
             update = True
         elif not target_id in self.dependencies:
 #            print "Dependencies for %s do not exist" % target_id
+            update = True
+        elif self.dependencies[target_id] is None:
+            #The callback requested to try again next time
             update = True
         else:
             target_time = lstat(target_path).st_mtime
