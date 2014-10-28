@@ -17,11 +17,12 @@ setup(
     version=version,
     packages=find_packages("src"),
     package_dir={"" : "src"},
-    namespace_packages=['manuallabour','manuallabour.cl.importers'],
+    namespace_packages=['manuallabour','manuallabour.cl','manuallabour.cl.importers'],
     description='Commandline interface for Manual Labour',
     long_description=long_description,
     install_requires = ['manuallabour','jsonschema','pyyaml'],
     entry_points={
-        'console_scripts': ['manuallabour = manuallabour.cl.commandline:main_function']
+        'console_scripts': ['manuallabour = manuallabour.cl.commandline:main_function'],
+        'importers': ['openscad = manuallabour.cl.importers.openscad:OpenSCADImporter']
     }
 )

@@ -1,0 +1,60 @@
+title: Simple example
+description: A simple example YAML input file
+steps:
+  s1:
+    title: Do something
+    duration: 10 min
+    waiting: 30 min
+    description: Do something first
+    assertions:
+      - The foo should be tightly inserted into the bar
+    images:
+      img: {filename: foobar.png, alt: A foobar}
+    tools:
+      tdp: {name: Quabuble, quantity: 1, images: [{filename: foobar.png, alt: A foobar}]}
+    parts:
+      nut: {name: Nut, quantity: 2}
+      onut: {name: Nut, quantity: 2, optional: True}
+      bolt: {name: Bolt, quantity: 2}
+    results:
+      tnut: {name: Tightened Bolt Nut, quantity: 2}
+    openscad:
+      images:
+        chb:
+          scadfile: M12_CameraCaseAssy.scad
+          name: Back Housing
+          module: CameraHousingBack
+      files:
+        chb:
+          scadfile: M12_CameraCaseAssy.scad
+          filename: back_housing.stl
+          module: CameraHousingBack
+  s3:
+    title: Do something else
+    requires: s1
+    duration: 2 min
+    description: Then do something next
+    parts:
+      bolt: {name: Bolt}
+      nut: {name: Nut, quantity: 3}
+      tnut: {ref: s1.results.tnut, quantity: 2}
+    openscad:
+      parts:
+        cam:
+          scadfile: M12_CameraCaseAssy.scad
+          name: M12 mount 36 x 36 mm RPi-compatible camera
+          module: CamAssy
+      results:
+        chb:
+          scadfile: M12_CameraCaseAssy.scad
+          name: Back Housing
+          module: CameraHousingBack
+        chf:
+          scadfile: M12_CameraCaseAssy.scad
+          name: Front Housing
+          module: CHF
+      tools:
+        chb:
+          scadfile: M12_CameraCaseAssy.scad
+          name: Back Housing
+          module: CameraHousingBack

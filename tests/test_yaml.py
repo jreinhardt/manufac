@@ -1,10 +1,84 @@
 import unittest
-from manuallabour.cl.yaml_reader import *
+
+from os import makedirs
+from os.path import join
+from shutil import rmtree
+
+from manuallabour.cl.utils import FileCache
+from manuallabour.cl.importers.base import *
+from manuallabour.cl.importers.openscad import OpenSCADImporter
 
 class TestYAML(unittest.TestCase):
+    def setUp(self):
+        self.basic = BasicSyntaxImporter()
+        self.store = LocalMemoryStore()
+        self.steps = {}
+        self.reqs = {}
+        self.name = "test"
+
+
+    def tearDown(self):
+        g = Graph(self.store)
+        for step_id in self.steps:
+            g.add_step(
+                GraphStep(step_id,**self.steps[step_id]),self.reqs[step_id])
+        g.to_svg(join('tests','output','%s.svg' % self.name))
+
     def test_init(self):
-        g = graph_from_YAML('tests/yaml/simple.yaml')
-        g.to_svg('test.svg')
+        inst = list(
+            yaml.load_all(open('tests/yaml/simple.yaml',"r","utf8"))
+        )[0]
+
+        self.name = "simple"
+
+        for step_id in inst["steps"]:
+            self.basic.process(step_id,inst,self.steps,self.reqs,self.store,None)
+
+    def test_refs(self):
+        inst = list(
+            yaml.load_all(open('tests/yaml/refs.yaml',"r","utf8"))
+        )[0]
+
+        self.name = "refs"
+
+        ref_imp = ReferenceImporter()
+
+        for step_id in inst["steps"]:
+            self.basic.process(step_id,inst,self.steps,self.reqs,self.store,None)
+
+        for step_id in inst["steps"]:
+            ref_imp.process(step_id,inst,self.steps,self.reqs,self.store,None)
+
+    def test_openscad(self):
+        inst = list(
+            yaml.load_all(open('tests/yaml/openscad.yaml',"r","utf8"))
+        )[0]
+
+        self.name = "openscad"
+
+        cachedir  = join('tests','cache',self.name)
+        rmtree(cachedir,True)
+        makedirs(cachedir)
+
+        basic_imp = BasicSyntaxImporter()
+        ref_imp = ReferenceImporter()
+        os_imp = OpenSCADImporter('tests/yaml')
+
+        for step_id in inst["steps"]:
+            basic_imp.process(step_id,inst,self.steps,self.reqs,self.store,None)
+
+        with FileCache(cachedir) as cache:
+            for step_id in inst["steps"]:
+                os_imp.process(step_id,inst,self.steps,self.reqs,self.store,cache)
+
+        for step_id,step_dict in inst["steps"].iteritems():
+            ref_imp.process(step_id,inst,self.steps,self.reqs,self.store,None)
+
+        with open(join(cachedir,'.deps')) as fid:
+            deps = json.loads(fid.read())
+        self.assertEqual(len(deps),5)
+        for dep in deps.values():
+            self.assertEqual(len(dep),2)
 
 class TestTime(unittest.TestCase):
     def test_parse(self):
