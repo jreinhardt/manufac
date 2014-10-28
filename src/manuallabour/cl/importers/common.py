@@ -10,7 +10,7 @@ class ImporterBase(object):
         """
         self.key = key
 
-    def process(self,step_id,in_dict,out_dict,req,store,cache):
+    def process(self,step_id,in_dict,out_dict,store,cache):
         """
         Process one step.
 

@@ -75,11 +75,10 @@ def main_function():
     store = LocalMemoryStore()
 
     steps = {}
-    reqs = {}
 
     # base syntax
     for step_id in inst["steps"]:
-        basic_imp.process(step_id,inst,steps,reqs,store,None)
+        basic_imp.process(step_id,inst,steps,store,None)
 
     # importers
     with FileCache(cachedir) as fc:
@@ -87,16 +86,16 @@ def main_function():
             fc.clear()
         for imp in importers:
             for step_id,step_dict in inst["steps"].iteritems():
-                imp.process(step_id,inst,steps,reqs,store,fc)
+                imp.process(step_id,inst,steps,store,fc)
 
     # references
     for step_id in inst["steps"]:
-        ref_imp.process(step_id,inst,steps,reqs,store,None)
+        ref_imp.process(step_id,inst,steps,store,None)
 
 
     g = Graph(store)
     for step_id in steps:
-        g.add_step(GraphStep(step_id,**steps[step_id]),reqs[step_id])
+        g.add_step(GraphStep(step_id,**steps[step_id]))
 
     steps,start = schedule_greedy(g)
 

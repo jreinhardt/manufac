@@ -13,15 +13,13 @@ class TestYAML(unittest.TestCase):
         self.basic = BasicSyntaxImporter()
         self.store = LocalMemoryStore()
         self.steps = {}
-        self.reqs = {}
         self.name = "test"
-
 
     def tearDown(self):
         g = Graph(self.store)
         for step_id in self.steps:
             g.add_step(
-                GraphStep(step_id,**self.steps[step_id]),self.reqs[step_id])
+                GraphStep(step_id,**self.steps[step_id]))
         g.to_svg(join('tests','output','%s.svg' % self.name))
 
     def test_init(self):
@@ -32,7 +30,7 @@ class TestYAML(unittest.TestCase):
         self.name = "simple"
 
         for step_id in inst["steps"]:
-            self.basic.process(step_id,inst,self.steps,self.reqs,self.store,None)
+            self.basic.process(step_id,inst,self.steps,self.store,None)
 
     def test_refs(self):
         inst = list(
@@ -44,10 +42,10 @@ class TestYAML(unittest.TestCase):
         ref_imp = ReferenceImporter()
 
         for step_id in inst["steps"]:
-            self.basic.process(step_id,inst,self.steps,self.reqs,self.store,None)
+            self.basic.process(step_id,inst,self.steps,self.store,None)
 
         for step_id in inst["steps"]:
-            ref_imp.process(step_id,inst,self.steps,self.reqs,self.store,None)
+            ref_imp.process(step_id,inst,self.steps,self.store,None)
 
     def test_openscad(self):
         inst = list(
@@ -65,14 +63,14 @@ class TestYAML(unittest.TestCase):
         os_imp = OpenSCADImporter('tests/yaml')
 
         for step_id in inst["steps"]:
-            basic_imp.process(step_id,inst,self.steps,self.reqs,self.store,None)
+            basic_imp.process(step_id,inst,self.steps,self.store,None)
 
         with FileCache(cachedir) as cache:
             for step_id in inst["steps"]:
-                os_imp.process(step_id,inst,self.steps,self.reqs,self.store,cache)
+                os_imp.process(step_id,inst,self.steps,self.store,cache)
 
         for step_id,step_dict in inst["steps"].iteritems():
-            ref_imp.process(step_id,inst,self.steps,self.reqs,self.store,None)
+            ref_imp.process(step_id,inst,self.steps,self.store,None)
 
         with open(join(cachedir,'.deps')) as fid:
             deps = json.loads(fid.read())

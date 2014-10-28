@@ -114,7 +114,7 @@ class BasicSyntaxImporter(object):
 
         return common.ResourceReference(res_id)
 
-    def process(self,step_id,in_dict,out_dict,requirements,store,cache):
+    def process(self,step_id,in_dict,out_dict,store,cache):
         step_in = in_dict["steps"][step_id]
 
         step_out = {}
@@ -154,12 +154,12 @@ class BasicSyntaxImporter(object):
             files[key] = self._file_from_YAML(store,f_dict)
         step_out["files"] = files
 
-        out_dict[step_id] = step_out
-
         dependencies = step_in.get('requires',[])
         if isinstance(dependencies,str):
             dependencies = [dependencies]
-        requirements[step_id] = dependencies
+        step_out["requires"] = dependencies
+
+        out_dict[step_id] = step_out
 
 class ReferenceImporter(object):
     def _resolve_reference(self,ref_inst,out_dict):
@@ -177,7 +177,7 @@ class ReferenceImporter(object):
             optional=optional
         )
 
-    def process(self,step_id,in_dict,out_dict,requirements,store,cache):
+    def process(self,step_id,in_dict,out_dict,store,cache):
         step_in = in_dict["steps"][step_id]
         step_out = out_dict[step_id]
 
@@ -188,8 +188,8 @@ class ReferenceImporter(object):
                     out_dict
                 )
 
-                if target_step not in requirements[step_id]:
-                    requirements[step_id].append(target_step)
+                if target_step not in step_out["requires"]:
+                    step_out["requires"].append(target_step)
 
                 step_out["parts"][key] = obj_ref
 
@@ -200,7 +200,7 @@ class ReferenceImporter(object):
                     out_dict
                 )
 
-                if target_step not in requirements[step_id]:
-                    requirements[step_id].append(target_step)
+                if target_step not in step_out["requires"]:
+                    step_out["requires"].append(target_step)
 
                 step_out["tools"][key] = obj_ref

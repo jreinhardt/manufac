@@ -89,7 +89,7 @@ class OpenSCADImporter(ImporterBase):
         os.remove(dep_path)
         return deps
 
-    def process(self,step_id,in_dict,out_dict,reqs,store,cache):
+    def process(self,step_id,in_dict,out_dict,store,cache):
         step_dict = in_dict["steps"][step_id]
         if not 'openscad' in step_dict:
             return
