@@ -10,6 +10,7 @@ import yaml
 
 from manuallabour.core.schedule import schedule_greedy, Schedule
 from manuallabour.core.stores import LocalMemoryStore
+from manuallabour.exporters.html import SinglePageHTMLExporter
 from manuallabour.cl.utils import FileCache
 from manuallabour.cl.importers.base import *
 
@@ -92,13 +93,13 @@ def main_function():
     for step_id in inst["steps"]:
         ref_imp.process(step_id,inst,steps,store,None)
 
-
-    g = Graph(store)
-    for step_id in steps:
-        g.add_step(GraphStep(step_id,**steps[step_id]))
+    g = Graph([GraphStep(s_id,**steps[s_id]) for s_id in steps],store)
 
     steps,start = schedule_greedy(g)
 
     s = Schedule(steps,g.store,start)
 
+    e = SinglePageHTMLExporter('basic')
+    e.export(s,args['output'])
     s.to_svg(join(args['output'],'schedule.svg'))
+

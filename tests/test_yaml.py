@@ -16,10 +16,10 @@ class TestYAML(unittest.TestCase):
         self.name = "test"
 
     def tearDown(self):
-        g = Graph(self.store)
-        for step_id in self.steps:
-            g.add_step(
-                GraphStep(step_id,**self.steps[step_id]))
+        steps = []
+        for step_id,step in self.steps.iteritems():
+            steps.append(GraphStep(step_id,**step))
+        g = Graph(steps,self.store)
         g.to_svg(join('tests','output','%s.svg' % self.name))
 
     def test_init(self):
