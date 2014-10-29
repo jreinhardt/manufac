@@ -98,9 +98,9 @@ class BasicSyntaxImporter(object):
         res_id = hashlib.sha512(path).hexdigest()
 
         if not store.has_res(res_id):
-            store.add_res(File(res_id,filename=basename(path)),path)
+            store.add_res(common.File(res_id,filename=basename(path)),path)
 
-        return Common.ResourceReference(res_id)
+        return common.ResourceReference(res_id)
 
     def _image_from_YAML(self,store,inst):
         path = inst["filename"]
