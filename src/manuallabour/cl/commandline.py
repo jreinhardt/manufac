@@ -93,7 +93,7 @@ def main_function():
     for step_id in inst["steps"]:
         ref_imp.process(step_id,inst,steps,store,None)
 
-    g = Graph([GraphStep(s_id,**steps[s_id]) for s_id in steps],store)
+    g = Graph([GraphStep(step_id=s_id,**steps[s_id]) for s_id in steps],store)
 
     steps,start = schedule_greedy(g)
 

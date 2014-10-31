@@ -83,10 +83,10 @@ class BasicSyntaxImporter(object):
         inst["images"] = images
 
         if not store.has_obj(obj_id):
-            store.add_obj(common.Object(obj_id,**inst))
+            store.add_obj(common.Object(obj_id=obj_id,**inst))
 
         return common.ObjectReference(
-            obj_id,
+            obj_id=obj_id,
             quantity=quantity,
             optional=optional,
             created=created
@@ -98,9 +98,9 @@ class BasicSyntaxImporter(object):
         res_id = hashlib.sha512(path).hexdigest()
 
         if not store.has_res(res_id):
-            store.add_res(common.File(res_id,filename=basename(path)),path)
+            store.add_res(common.File(res_id=res_id,filename=basename(path)),path)
 
-        return common.ResourceReference(res_id)
+        return common.ResourceReference(res_id=res_id)
 
     def _image_from_YAML(self,store,inst):
         path = inst["filename"]
@@ -110,9 +110,9 @@ class BasicSyntaxImporter(object):
         res_id = hashlib.sha512(path).hexdigest()
 
         if not store.has_res(res_id):
-            store.add_res(common.Image(res_id,extension=ext,alt=alt),path)
+            store.add_res(common.Image(res_id=res_id,extension=ext,alt=alt),path)
 
-        return common.ResourceReference(res_id)
+        return common.ResourceReference(res_id=res_id)
 
     def process(self,step_id,in_dict,out_dict,store,cache):
         step_in = in_dict["steps"][step_id]
@@ -172,7 +172,7 @@ class ReferenceImporter(object):
         optional = ref_inst.get("optional",False)
 
         return target_step,common.ObjectReference(
-            obj_id,
+            obj_id=obj_id,
             quantity=quantity,
             optional=optional
         )

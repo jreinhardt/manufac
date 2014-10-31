@@ -126,14 +126,14 @@ class OpenSCADImporter(ImporterBase):
 
                 store.add_res(
                     common.File(
-                        res_id,
+                        res_id=res_id,
                         filename=item['filename']
                     ),
                     path
                 )
 
                 out_dict[step_id]['files'][id] = \
-                    common.ResourceReference(res_id)
+                    common.ResourceReference(res_id=res_id)
 
         for obj_type in ["parts","tools","results"]:
             if obj_type in step_dict["openscad"]:
@@ -161,7 +161,7 @@ class OpenSCADImporter(ImporterBase):
                     if not store.has_res(res_id):
                         store.add_res(
                             common.Image(
-                                res_id,
+                                res_id=res_id,
                                 extension='.png',
                                 alt=obj_name
                             ),
@@ -171,20 +171,20 @@ class OpenSCADImporter(ImporterBase):
 
                     if not store.has_obj(obj_id):
                         store.add_obj(common.Object(
-                            obj_id,
+                            obj_id=obj_id,
                             name=obj_name,
-                            images=[common.ResourceReference(res_id)]
+                            images=[common.ResourceReference(res_id=res_id)]
                         ))
 
                     if obj_type == "results":
                         out_dict[step_id][obj_type][id] = common.ObjectReference(
-                            obj_id,
+                            obj_id=obj_id,
                             created=True,
                             quantity=quantity
                         )
                     else:
                         out_dict[step_id][obj_type][id] = common.ObjectReference(
-                            obj_id,
+                            obj_id=obj_id,
                             optional=optional,
                             quantity=quantity
                         )
