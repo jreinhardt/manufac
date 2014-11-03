@@ -7,6 +7,8 @@ from shutil import rmtree
 from manuallabour.cl.utils import FileCache
 from manuallabour.cl.importers.base import *
 from manuallabour.cl.importers.openscad import OpenSCADImporter
+from manuallabour.core.common import Step
+from manuallabour.core.graph import GraphStep
 
 class TestYAML(unittest.TestCase):
     def setUp(self):
@@ -16,11 +18,20 @@ class TestYAML(unittest.TestCase):
         self.name = "test"
 
     def tearDown(self):
-        steps = []
-        for step_id,step in self.steps.iteritems():
-            steps.append(GraphStep(step_id,**step))
+        steps = {}
+        for alias,step_dict in self.steps.iteritems():
+            requires = step_dict.pop("requires",[])
+            step_id = Step.calculate_checksum(**step_dict)
+            self.store.add_step(Step(step_id=step_id,**step_dict))
+
+            steps[alias] = GraphStep(step_id=step_id,requires=requires)
+
         g = Graph(steps,self.store)
-        g.to_svg(join('tests','output','%s.svg' % self.name))
+        g.to_svg(
+            join('tests','output','%s.svg' % self.name),
+            with_objects=True,
+            with_resources=True
+        )
 
     def test_init(self):
         inst = list(

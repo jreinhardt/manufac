@@ -10,6 +10,8 @@ import yaml
 
 from manuallabour.core.schedule import schedule_greedy, Schedule
 from manuallabour.core.stores import LocalMemoryStore
+from manuallabour.core.common import Step
+from manuallabour.core.graph import Graph,GraphStep
 from manuallabour.exporters.html import SinglePageHTMLExporter
 from manuallabour.cl.utils import FileCache
 from manuallabour.cl.importers.base import *
@@ -43,8 +45,7 @@ def main_function():
         help='layout (for html only)',
         dest='layout',
         type=str,
-        choices=['deck','bootstrap'],
-        default='deck'
+        default='basic'
     )
     parser.add_argument(
         '-c',
@@ -57,8 +58,10 @@ def main_function():
 
     inst = list(yaml.load_all(open(args['input'],"r","utf8")))[0]
 
-    #validate
-    #validate(inst,'ml.json')
+    data = dict(title=inst["title"],author="John Doe")
+
+    validate
+    validate(inst,'ml.json')
 
     basedir = dirname(args['input'])
 
@@ -89,17 +92,27 @@ def main_function():
             for step_id,step_dict in inst["steps"].iteritems():
                 imp.process(step_id,inst,steps,store,fc)
 
-    # references
+    # resolve references
     for step_id in inst["steps"]:
         ref_imp.process(step_id,inst,steps,store,None)
 
-    g = Graph([GraphStep(step_id=s_id,**steps[s_id]) for s_id in steps],store)
+    # create steps
+    graph_steps = {}
+    for alias, step_dict in steps.iteritems():
+        requires = step_dict.pop("requires",[])
 
-    steps,start = schedule_greedy(g)
+        step_id = Step.calculate_checksum(**step_dict)
+        store.add_step(Step(step_id=step_id,**step_dict))
 
-    s = Schedule(steps,g.store,start)
+        graph_steps[alias] = GraphStep(step_id=step_id,requires=requires)
 
-    e = SinglePageHTMLExporter('basic')
-    e.export(s,args['output'])
+    g = Graph(graph_steps,store)
+
+    schedule_steps = schedule_greedy(g)
+
+    s = Schedule(schedule_steps,g.store)
+
+    e = SinglePageHTMLExporter(args['layout'])
+    e.export(s,args['output'],**data)
     s.to_svg(join(args['output'],'schedule.svg'))
 

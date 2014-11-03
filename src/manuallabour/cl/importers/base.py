@@ -70,17 +70,14 @@ class BasicSyntaxImporter(object):
         quantity = inst.pop("quantity",1)
         optional = inst.pop("optional",False)
 
-        # calculate obj id
-        m = hashlib.sha512()
-        m.update(inst.get('name'))
-        m.update(inst.get('description',''))
-        obj_id = m.hexdigest()
-
         # prepare resources
         images = []
         for img in inst.get("images",[]):
             images.append(self._image_from_YAML(store,img))
         inst["images"] = images
+
+        # calculate obj id
+        obj_id = common.Object.calculate_checksum(**inst)
 
         if not store.has_obj(obj_id):
             store.add_obj(common.Object(obj_id=obj_id,**inst))

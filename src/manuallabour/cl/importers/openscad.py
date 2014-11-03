@@ -105,7 +105,7 @@ class OpenSCADImporter(ImporterBase):
 
                 store.add_res(
                     common.Image(
-                        res_id,
+                        res_id=res_id,
                         extension='.png',
                         alt='Render of %s' % item['scadfile']
                     ),
@@ -113,7 +113,7 @@ class OpenSCADImporter(ImporterBase):
                 )
 
                 out_dict[step_id]['images'][id] = \
-                    common.ResourceReference(res_id)
+                    common.ResourceReference(res_id=res_id)
 
         if "files" in step_dict["openscad"]:
             for id,item in step_dict["openscad"]["files"].iteritems():
