@@ -101,16 +101,20 @@ class OpenSCADImporter(ImporterBase):
                     importer='openscad',
                     extension='.png',
                     **item)
-                res_id = splitext(basename(path))[0]
+                blob_id = splitext(basename(path))[0]
+                if not store.has_blob(blob_id):
+                    store.add_blob(blob_id,path)
 
-                store.add_res(
-                    common.Image(
-                        res_id=res_id,
-                        extension='.png',
-                        alt='Render of %s' % item['scadfile']
-                    ),
-                    path
-                )
+                res_id = blob_id
+                if not store.has_res(res_id):
+                    store.add_res(
+                        common.Image(
+                            res_id=res_id,
+                            blob_id=blob_id,
+                            extension='.png',
+                            alt='Render of %s' % item['scadfile']
+                        )
+                    )
 
                 out_dict[step_id]['images'][id] = \
                     common.ResourceReference(res_id=res_id)
@@ -122,15 +126,19 @@ class OpenSCADImporter(ImporterBase):
                     importer='openscad',
                     extension=splitext(item['filename'])[1],
                     **item)
-                res_id = splitext(basename(path))[0]
+                blob_id = splitext(basename(path))[0]
+                if not store.has_blob(blob_id):
+                    store.add_blob(blob_id,path)
 
-                store.add_res(
-                    common.File(
-                        res_id=res_id,
-                        filename=item['filename']
-                    ),
-                    path
-                )
+                res_id = blob_id
+                if not store.has_res(res_id):
+                    store.add_res(
+                        common.File(
+                            res_id=res_id,
+                            blob_id=blob_id,
+                            filename=item['filename']
+                        )
+                    )
 
                 out_dict[step_id]['files'][id] = \
                     common.ResourceReference(res_id=res_id)
@@ -151,23 +159,24 @@ class OpenSCADImporter(ImporterBase):
                     m.update(obj_description)
                     obj_id = m.hexdigest()
 
+                    #create image
                     path = cache.process(
                         self._image,
                         importer='openscad',
                         extension='.png',
                         **item)
-                    res_id = splitext(basename(path))[0]
+                    blob_id = splitext(basename(path))[0]
+                    if not store.has_blob(blob_id):
+                        store.add_blob(blob_id,path)
 
+                    res_id = blob_id
                     if not store.has_res(res_id):
-                        store.add_res(
-                            common.Image(
+                        store.add_res(common.Image(
                                 res_id=res_id,
+                                blob_id=blob_id,
                                 extension='.png',
                                 alt=obj_name
-                            ),
-                            path
-                        )
-
+                        ))
 
                     if not store.has_obj(obj_id):
                         store.add_obj(common.Object(

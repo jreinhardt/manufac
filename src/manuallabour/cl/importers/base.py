@@ -6,7 +6,6 @@ import re
 import json
 import jsonschema
 import pkg_resources
-import hashlib
 from copy import deepcopy
 
 from manuallabour.core.stores import LocalMemoryStore
@@ -91,11 +90,16 @@ class BasicSyntaxImporter(object):
 
     def _file_from_YAML(self,store,inst):
         path = inst["path"]
+        filename = basename(path)
+        with open(path,'rb') as fid:
+            blob_id = common.calculate_blob_checksum(fid)
+        if not store.has_blob(blob_id):
+            store.add_blob(blob_id,path)
 
-        res_id = hashlib.sha512(path).hexdigest()
+        res_id = common.File.calculate_checksum(filename=filename,blob_id=blob_id)
 
         if not store.has_res(res_id):
-            store.add_res(common.File(res_id=res_id,filename=basename(path)),path)
+            store.add_res(common.File(res_id=res_id,blob_id=blob_id,filename=filename))
 
         return common.ResourceReference(res_id=res_id)
 
@@ -104,10 +108,15 @@ class BasicSyntaxImporter(object):
         ext = splitext(path)[1]
         alt = inst.get("alt","")
 
-        res_id = hashlib.sha512(path).hexdigest()
+        with open(path,'rb') as fid:
+            blob_id = common.calculate_blob_checksum(fid)
+        if not store.has_blob(blob_id):
+            store.add_blob(blob_id,path)
+
+        res_id = common.Image.calculate_checksum(blob_id=blob_id,extension=ext,alt=alt)
 
         if not store.has_res(res_id):
-            store.add_res(common.Image(res_id=res_id,extension=ext,alt=alt),path)
+            store.add_res(common.Image(res_id=res_id,blob_id=blob_id,extension=ext,alt=alt))
 
         return common.ResourceReference(res_id=res_id)
 
