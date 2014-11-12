@@ -101,20 +101,19 @@ class OpenSCADImporter(ImporterBase):
                     importer='openscad',
                     extension='.png',
                     **item)
-                blob_id = splitext(basename(path))[0]
+                with open(path,'rb') as fid:
+                    blob_id = common.calculate_blob_checksum(fid)
                 if not store.has_blob(blob_id):
                     store.add_blob(blob_id,path)
 
-                res_id = blob_id
+                img_dict = dict(
+                    blob_id=blob_id,
+                    extension='.png',
+                    alt='Render of %s' % item['scadfile']
+                )
+                res_id = common.Image.calculate_checksum(**img_dict)
                 if not store.has_res(res_id):
-                    store.add_res(
-                        common.Image(
-                            res_id=res_id,
-                            blob_id=blob_id,
-                            extension='.png',
-                            alt='Render of %s' % item['scadfile']
-                        )
-                    )
+                    store.add_res(common.Image(res_id = res_id,**img_dict))
 
                 out_dict[step_id]['images'][id] = \
                     common.ResourceReference(res_id=res_id)
@@ -126,19 +125,19 @@ class OpenSCADImporter(ImporterBase):
                     importer='openscad',
                     extension=splitext(item['filename'])[1],
                     **item)
-                blob_id = splitext(basename(path))[0]
+                with open(path,'rb') as fid:
+                    blob_id = common.calculate_blob_checksum(fid)
                 if not store.has_blob(blob_id):
                     store.add_blob(blob_id,path)
 
-                res_id = blob_id
+                file_dict = dict(
+                    blob_id=blob_id,
+                    filename=item['filename']
+                )
+
+                res_id = common.File.calculate_checksum(**file_dict)
                 if not store.has_res(res_id):
-                    store.add_res(
-                        common.File(
-                            res_id=res_id,
-                            blob_id=blob_id,
-                            filename=item['filename']
-                        )
-                    )
+                    store.add_res(common.File(res_id=res_id, **file_dict))
 
                 out_dict[step_id]['files'][id] = \
                     common.ResourceReference(res_id=res_id)
@@ -146,18 +145,13 @@ class OpenSCADImporter(ImporterBase):
         for obj_type in ["parts","tools","results"]:
             if obj_type in step_dict["openscad"]:
                 for id,item in step_dict["openscad"][obj_type].iteritems():
-
-                    obj_name = item.pop('name')
-                    obj_description = item.pop('description','')
+                    obj_dict = {}
+                    obj_dict["name"] = item.pop('name')
+                    if "description" in item:
+                        obj_dict["description"] = item.pop('description')
 
                     quantity = item.pop('quantity',1)
                     optional = item.pop('optional',False)
-
-                    # calculate obj id
-                    m = hashlib.sha512()
-                    m.update(obj_name)
-                    m.update(obj_description)
-                    obj_id = m.hexdigest()
 
                     #create image
                     path = cache.process(
@@ -165,24 +159,30 @@ class OpenSCADImporter(ImporterBase):
                         importer='openscad',
                         extension='.png',
                         **item)
-                    blob_id = splitext(basename(path))[0]
+                    with open(path,'rb') as fid:
+                        blob_id = common.calculate_blob_checksum(fid)
                     if not store.has_blob(blob_id):
                         store.add_blob(blob_id,path)
 
-                    res_id = blob_id
+                    img_dict = dict(
+                        blob_id=blob_id,
+                        extension='.png',
+                        alt="Render of %s" % obj_dict["name"]
+                    )
+
+                    res_id = common.Image.calculate_checksum(**img_dict)
                     if not store.has_res(res_id):
-                        store.add_res(common.Image(
-                                res_id=res_id,
-                                blob_id=blob_id,
-                                extension='.png',
-                                alt=obj_name
-                        ))
+                        store.add_res(common.Image(res_id=res_id,**img_dict))
+
+                    obj_dict["images"] = \
+                        [common.ResourceReference(res_id=res_id)]
+
+                    obj_id = common.Object.calculate_checksum(**obj_dict)
 
                     if not store.has_obj(obj_id):
                         store.add_obj(common.Object(
                             obj_id=obj_id,
-                            name=obj_name,
-                            images=[common.ResourceReference(res_id=res_id)]
+                            **obj_dict
                         ))
 
                     if obj_type == "results":
