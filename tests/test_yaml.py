@@ -24,7 +24,7 @@ class TestYAML(unittest.TestCase):
             step_id = Step.calculate_checksum(**step_dict)
             self.store.add_step(Step(step_id=step_id,**step_dict))
 
-            steps[alias] = GraphStep(step_id=step_id,requires=requires)
+            steps[alias] = dict(step_id=step_id,requires=requires)
 
         g = Graph(steps,self.store)
         g.to_svg(
@@ -90,22 +90,24 @@ class TestYAML(unittest.TestCase):
             self.assertEqual(len(dep),2)
 
 class TestTime(unittest.TestCase):
+    def assertSeconds(self,time,seconds):
+        self.assertEqual(timedelta(**parse_time(time)).total_seconds(),seconds)
     def test_parse(self):
-        self.assertEqual(parse_time("4d").total_seconds(),345600)
-        self.assertEqual(parse_time("1 hour").total_seconds(),3600)
-        self.assertEqual(parse_time("3m").total_seconds(),180)
-        self.assertEqual(parse_time("2s").total_seconds(),2)
-        self.assertEqual(parse_time("3m2s").total_seconds(),182)
-        self.assertEqual(parse_time("1h3m2s").total_seconds(),3782)
-        self.assertEqual(parse_time("4d 1 hour 3m 2s").total_seconds(),349382)
-        self.assertEqual(parse_time("1 day 1 hour 1 minute 1 second").total_seconds(),90061)
-        self.assertEqual(parse_time("2 days 2 hours 2 minutes 2 seconds").total_seconds(),180122)
-        self.assertEqual(parse_time("2 d 2 h 2 m 2 s").total_seconds(),180122)
-        self.assertEqual(parse_time("2 d 2 h 2 min 2 s").total_seconds(),180122)
+        self.assertSeconds("4d",345600)
+        self.assertSeconds("1 hour",3600)
+        self.assertSeconds("3m",180)
+        self.assertSeconds("2s",2)
+        self.assertSeconds("3m2s",182)
+        self.assertSeconds("1h3m2s",3782)
+        self.assertSeconds("4d 1 hour 3m 2s",349382)
+        self.assertSeconds("1 day 1 hour 1 minute 1 second",90061)
+        self.assertSeconds("2 days 2 hours 2 minutes 2 seconds",180122)
+        self.assertSeconds("2 d 2 h 2 m 2 s",180122)
+        self.assertSeconds("2 d 2 h 2 min 2 s",180122)
         self.assertEqual(parse_time(None),None)
     def test_format(self):
         t = timedelta(days=3, hours=2, minutes=1, seconds = 7)
-        self.assertEqual(t,parse_time(format_time(t)))
+        self.assertEqual(t,timedelta(**parse_time(format_time(t))))
 
         self.assertEqual(format_time(None),None)
 

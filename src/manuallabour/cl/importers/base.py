@@ -29,8 +29,7 @@ def parse_time(time):
     if time is None:
         return None
     match = TIME_RE.match(time.strip())
-    components = dict(zip(TIME_ZIP,(int(v) for v in match.groups('0'))))
-    return timedelta(**components)
+    return dict(zip(TIME_ZIP,(int(v) for v in match.groups('0'))))
 
 def format_time(time):
     """
@@ -81,7 +80,7 @@ class BasicSyntaxImporter(object):
         if not store.has_obj(obj_id):
             store.add_obj(common.Object(obj_id=obj_id,**inst))
 
-        return common.ObjectReference(
+        return dict(
             obj_id=obj_id,
             quantity=quantity,
             optional=optional,
@@ -96,12 +95,7 @@ class BasicSyntaxImporter(object):
         if not store.has_blob(blob_id):
             store.add_blob(blob_id,path)
 
-        res_id = common.File.calculate_checksum(filename=filename,blob_id=blob_id)
-
-        if not store.has_res(res_id):
-            store.add_res(common.File(res_id=res_id,blob_id=blob_id,filename=filename))
-
-        return common.ResourceReference(res_id=res_id)
+        return dict(blob_id=blob_id,filename=filename)
 
     def _image_from_YAML(self,store,inst):
         path = inst["filename"]
@@ -113,12 +107,7 @@ class BasicSyntaxImporter(object):
         if not store.has_blob(blob_id):
             store.add_blob(blob_id,path)
 
-        res_id = common.Image.calculate_checksum(blob_id=blob_id,extension=ext,alt=alt)
-
-        if not store.has_res(res_id):
-            store.add_res(common.Image(res_id=res_id,blob_id=blob_id,extension=ext,alt=alt))
-
-        return common.ResourceReference(res_id=res_id)
+        return dict(blob_id=blob_id,extension=ext,alt=alt)
 
     def process(self,step_id,in_dict,out_dict,store,cache):
         step_in = in_dict["steps"][step_id]
@@ -172,12 +161,12 @@ class ReferenceImporter(object):
         m = REF_RE.match(ref_inst.pop("ref"))
         target_step = m.group(1)
         target_key = m.group(2)
-        obj_id = out_dict[target_step]["results"][target_key].obj_id
+        obj_id = out_dict[target_step]["results"][target_key]["obj_id"]
 
         quantity = ref_inst.get("quantity",1)
         optional = ref_inst.get("optional",False)
 
-        return target_step,common.ObjectReference(
+        return target_step,dict(
             obj_id=obj_id,
             quantity=quantity,
             optional=optional

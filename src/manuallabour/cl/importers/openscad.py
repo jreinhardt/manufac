@@ -111,12 +111,8 @@ class OpenSCADImporter(ImporterBase):
                     extension='.png',
                     alt='Render of %s' % item['scadfile']
                 )
-                res_id = common.Image.calculate_checksum(**img_dict)
-                if not store.has_res(res_id):
-                    store.add_res(common.Image(res_id = res_id,**img_dict))
 
-                out_dict[step_id]['images'][id] = \
-                    common.ResourceReference(res_id=res_id)
+                out_dict[step_id]['images'][id] = img_dict
 
         if "files" in step_dict["openscad"]:
             for id,item in step_dict["openscad"]["files"].iteritems():
@@ -135,12 +131,7 @@ class OpenSCADImporter(ImporterBase):
                     filename=item['filename']
                 )
 
-                res_id = common.File.calculate_checksum(**file_dict)
-                if not store.has_res(res_id):
-                    store.add_res(common.File(res_id=res_id, **file_dict))
-
-                out_dict[step_id]['files'][id] = \
-                    common.ResourceReference(res_id=res_id)
+                out_dict[step_id]['files'][id] = file_dict
 
         for obj_type in ["parts","tools","results"]:
             if obj_type in step_dict["openscad"]:
@@ -170,12 +161,7 @@ class OpenSCADImporter(ImporterBase):
                         alt="Render of %s" % obj_dict["name"]
                     )
 
-                    res_id = common.Image.calculate_checksum(**img_dict)
-                    if not store.has_res(res_id):
-                        store.add_res(common.Image(res_id=res_id,**img_dict))
-
-                    obj_dict["images"] = \
-                        [common.ResourceReference(res_id=res_id)]
+                    obj_dict["images"] = [img_dict]
 
                     obj_id = common.Object.calculate_checksum(**obj_dict)
 
@@ -186,13 +172,13 @@ class OpenSCADImporter(ImporterBase):
                         ))
 
                     if obj_type == "results":
-                        out_dict[step_id][obj_type][id] = common.ObjectReference(
+                        out_dict[step_id][obj_type][id] = dict(
                             obj_id=obj_id,
                             created=True,
                             quantity=quantity
                         )
                     else:
-                        out_dict[step_id][obj_type][id] = common.ObjectReference(
+                        out_dict[step_id][obj_type][id] = dict(
                             obj_id=obj_id,
                             optional=optional,
                             quantity=quantity
