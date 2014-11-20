@@ -13,6 +13,7 @@ from manuallabour.core.stores import LocalMemoryStore
 from manuallabour.core.common import Step
 from manuallabour.core.graph import Graph,GraphStep
 from manuallabour.exporters.html import SinglePageHTMLExporter
+from manuallabour.exporters.svg import GraphSVGExporter
 from manuallabour.cl.utils import FileCache
 from manuallabour.cl.importers.base import *
 
@@ -58,7 +59,6 @@ def main_function():
 
     inst = list(yaml.load_all(open(args['input'],"r","utf8")))[0]
 
-    data = dict(title=inst["title"],author="John Doe")
 
     validate
     validate(inst,'ml.json')
@@ -104,15 +104,19 @@ def main_function():
         step_id = Step.calculate_checksum(**step_dict)
         store.add_step(Step(step_id=step_id,**step_dict))
 
-        graph_steps[alias] = GraphStep(step_id=step_id,requires=requires)
+        graph_steps[alias] = dict(step_id=step_id,requires=requires)
 
-    g = Graph(graph_steps,store)
+    g = Graph(graph_id="dummy",steps=graph_steps)
 
-    schedule_steps = schedule_greedy(g)
+    schedule_steps = schedule_greedy(g,store)
 
-    s = Schedule(schedule_steps,g.store)
+    s = Schedule(sched_id="dummy",steps = schedule_steps)
+
+    data = dict(title=inst["title"],author="John Doe")
 
     e = SinglePageHTMLExporter(args['layout'])
-    e.export(s,args['output'],**data)
-    s.to_svg(join(args['output'],'schedule.svg'))
+    e.export(s,store,args['output'],**data)
+
+    e = GraphSVGExporter(with_resources=True,with_objects=True)
+    e.export(g,store,join(args['output'],'graph.svg'),**data)
 

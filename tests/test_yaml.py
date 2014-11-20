@@ -9,6 +9,7 @@ from manuallabour.cl.importers.base import *
 from manuallabour.cl.importers.openscad import OpenSCADImporter
 from manuallabour.core.common import Step
 from manuallabour.core.graph import GraphStep
+from manuallabour.exporters.svg import GraphSVGExporter
 
 class TestYAML(unittest.TestCase):
     def setUp(self):
@@ -26,11 +27,14 @@ class TestYAML(unittest.TestCase):
 
             steps[alias] = dict(step_id=step_id,requires=requires)
 
-        g = Graph(steps,self.store)
-        g.to_svg(
+        g = Graph(graph_id="dummy",steps=steps)
+        e = GraphSVGExporter(with_resources=True,with_objects=True)
+        e.export(
+            g,
+            self.store,
             join('tests','output','%s.svg' % self.name),
-            with_objects=True,
-            with_resources=True
+            author="John Does",
+            title="Test"
         )
 
     def test_init(self):
