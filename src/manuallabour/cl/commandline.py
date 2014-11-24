@@ -47,8 +47,6 @@ def load_graph(input_file,store,clear_cache):
 
     # importers
     with FileCache(cachedir) as fc:
-        if clear_cache:
-            fc.clear()
         for imp in importers:
             for step_alias,step_dict in inst["steps"].iteritems():
                 imp.process(step_alias,inst,steps,store,fc)
@@ -80,12 +78,23 @@ def cli():
     pass
 
 @cli.command()
+@click.argument('input_file',type=click.Path(exists=True))
+def clean(input_file):
+    basedir = dirname(input_file)
+
+    #clear cache
+    cachedir = join(basedir,'.mlcache')
+    if exists(cachedir):
+        with FileCache(cachedir) as fc:
+            fc.clear()
+
+
+@cli.command()
 @click.option('-o','--output',type=click.Path(exists=False,file_okay=False,dir_okay=True),default='docs')
 @click.option('-f','--format',type=click.Choice(['html','ttn']),default='html')
 @click.option('-l','--layout',default='basic')
-@click.option('--clear-cache/--no-clear-cache',default=False)
 @click.argument('input_file',type=click.Path(exists=True))
-def render(output,format,layout,clear_cache,input_file):
+def render(output,format,layout,input_file):
     """
     Render the instructions
     """
@@ -93,7 +102,7 @@ def render(output,format,layout,clear_cache,input_file):
 
     store = LocalMemoryStore()
 
-    graph,_ = load_graph(input_file,store,clear_cache)
+    graph,_ = load_graph(input_file,store)
 
     schedule_steps = schedule_greedy(graph,store)
 
@@ -117,12 +126,11 @@ def render(output,format,layout,clear_cache,input_file):
 
 @cli.command()
 @click.option('-h','--host',default='http://flask.dev:5000/')
-@click.option('--clear-cache/--no-clear-cache',default=False)
 @click.option('--username',prompt=True)
 @click.option('--password',prompt=True, hide_input=True)
 @click.argument('input_file',type=click.Path(exists=True))
 @click.argument('graph_name')
-def upload(host,clear_cache,username,password,input_file,graph_name):
+def upload(host,username,password,input_file,graph_name):
     """
     Upload the instruction to a cadinet
     """
@@ -131,7 +139,7 @@ def upload(host,clear_cache,username,password,input_file,graph_name):
 
     store = LocalMemoryStore()
 
-    graph,_ = load_graph(input_file,store,clear_cache)
+    graph,_ = load_graph(input_file,store)
     url = "%s%s" % (host,"%s")
     headers = {'content-type' : 'application/json'}
     auth=HTTPBasicAuth(username,password)
