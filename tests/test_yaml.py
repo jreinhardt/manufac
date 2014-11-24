@@ -19,13 +19,13 @@ class TestYAML(unittest.TestCase):
         self.name = "test"
 
     def tearDown(self):
-        steps = {}
+        steps = []
         for alias,step_dict in self.steps.iteritems():
             requires = step_dict.pop("requires",[])
             step_id = Step.calculate_checksum(**step_dict)
             self.store.add_step(Step(step_id=step_id,**step_dict))
 
-            steps[alias] = dict(step_id=step_id,requires=requires)
+            steps.append(dict(step_id=step_id,requires=requires))
 
         g = Graph(graph_id="dummy",steps=steps)
         e = GraphSVGExporter(with_resources=True,with_objects=True)
