@@ -89,97 +89,99 @@ class OpenSCADImporter(ImporterBase):
         os.remove(dep_path)
         return deps
 
-    def process(self,step_id,in_dict,out_dict,store,cache):
-        step_dict = in_dict["steps"][step_id]
-        if not 'openscad' in step_dict:
-            return
+    def process(self,scaf):
+        for alias, step_dict in scaf.steps_raw.iteritems():
+            out = scaf.steps_out[alias]
+            if not 'openscad' in step_dict:
+                continue
+            openscad = step_dict["openscad"]
 
-        if "images" in step_dict["openscad"]:
-            for id,item in step_dict["openscad"]["images"].iteritems():
-                path = cache.process(
-                    self._image,
-                    importer='openscad',
-                    extension='.png',
-                    **item)
-                with open(path,'rb') as fid:
-                    blob_id = common.calculate_blob_checksum(fid)
-                if not store.has_blob(blob_id):
-                    store.add_blob(blob_id,path)
-
-                img_dict = dict(
-                    blob_id=blob_id,
-                    extension='.png',
-                    alt='Render of %s' % item['scadfile']
-                )
-
-                out_dict[step_id]['images'][id] = img_dict
-
-        if "files" in step_dict["openscad"]:
-            for id,item in step_dict["openscad"]["files"].iteritems():
-                path = cache.process(
-                    self._file,
-                    importer='openscad',
-                    extension=splitext(item['filename'])[1],
-                    **item)
-                with open(path,'rb') as fid:
-                    blob_id = common.calculate_blob_checksum(fid)
-                if not store.has_blob(blob_id):
-                    store.add_blob(blob_id,path)
-
-                file_dict = dict(
-                    blob_id=blob_id,
-                    filename=item['filename']
-                )
-
-                out_dict[step_id]['files'][id] = file_dict
-
-        for obj_type in ["parts","tools","results"]:
-            if obj_type in step_dict["openscad"]:
-                for id,item in step_dict["openscad"][obj_type].iteritems():
-                    obj_dict = {}
-                    obj_dict["name"] = item.pop('name')
-                    if "description" in item:
-                        obj_dict["description"] = item.pop('description')
-
-                    quantity = item.pop('quantity',1)
-                    optional = item.pop('optional',False)
-
-                    #create image
-                    path = cache.process(
+            if "images" in openscad:
+                for id,item in openscad["images"].iteritems():
+                    path = scaf.cache.process(
                         self._image,
                         importer='openscad',
                         extension='.png',
                         **item)
                     with open(path,'rb') as fid:
                         blob_id = common.calculate_blob_checksum(fid)
-                    if not store.has_blob(blob_id):
-                        store.add_blob(blob_id,path)
+                    if not scaf.store.has_blob(blob_id):
+                        scaf.store.add_blob(blob_id,path)
 
                     img_dict = dict(
                         blob_id=blob_id,
                         extension='.png',
-                        alt="Render of %s" % obj_dict["name"]
+                        alt='Render of %s' % item['scadfile']
                     )
 
-                    obj_dict["images"] = [img_dict]
+                    out['images'][id] = img_dict
 
-                    obj_id = common.Object.calculate_checksum(**obj_dict)
+            if "files" in openscad:
+                for id,item in openscad["files"].iteritems():
+                    path = scaf.cache.process(
+                        self._file,
+                        importer='openscad',
+                        extension=splitext(item['filename'])[1],
+                        **item)
+                    with open(path,'rb') as fid:
+                        blob_id = common.calculate_blob_checksum(fid)
+                    if not scaf.store.has_blob(blob_id):
+                        scaf.store.add_blob(blob_id,path)
 
-                    if not store.has_obj(obj_id):
-                        store.add_obj(common.Object(
-                            obj_id=obj_id,
-                            **obj_dict
-                        ))
+                    file_dict = dict(
+                        blob_id=blob_id,
+                        filename=item['filename']
+                    )
 
-                    if obj_type == "results":
-                        out_dict[step_id][obj_type][id] = dict(
-                            obj_id=obj_id,
-                            created=True,
-                            quantity=quantity
+                    out['files'][id] = file_dict
+
+            for obj_type in ["parts","tools","results"]:
+                if obj_type in openscad:
+                    for id,item in openscad[obj_type].iteritems():
+                        obj_dict = {}
+                        obj_dict["name"] = item.pop('name')
+                        if "description" in item:
+                            obj_dict["description"] = item.pop('description')
+
+                        quantity = item.pop('quantity',1)
+                        optional = item.pop('optional',False)
+
+                        #create image
+                        path = scaf.cache.process(
+                            self._image,
+                            importer='openscad',
+                            extension='.png',
+                            **item)
+                        with open(path,'rb') as fid:
+                            blob_id = common.calculate_blob_checksum(fid)
+                        if not scaf.store.has_blob(blob_id):
+                            scaf.store.add_blob(blob_id,path)
+
+                        img_dict = dict(
+                            blob_id=blob_id,
+                            extension='.png',
+                            alt="Render of %s" % obj_dict["name"]
                         )
-                    else:
-                        out_dict[step_id][obj_type][id] = dict(
-                            obj_id=obj_id,
-                            optional=optional,
-                            quantity=quantity
-                        )
+
+                        obj_dict["images"] = [img_dict]
+
+                        obj_id = common.Object.calculate_checksum(**obj_dict)
+
+                        if not scaf.store.has_obj(obj_id):
+                            scaf.store.add_obj(common.Object(
+                                obj_id=obj_id,
+                                **obj_dict
+                            ))
+
+                        if obj_type == "results":
+                            out[obj_type][id] = dict(
+                                obj_id=obj_id,
+                                created=True,
+                                quantity=quantity
+                            )
+                        else:
+                            out[obj_type][id] = dict(
+                                obj_id=obj_id,
+                                optional=optional,
+                                quantity=quantity
+                            )

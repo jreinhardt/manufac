@@ -19,19 +19,11 @@ from manuallabour.exporters.html import SinglePageHTMLExporter
 from manuallabour.exporters.ttn import ThingTrackerExporter
 from manuallabour.exporters.svg import GraphSVGExporter, ScheduleSVGExporter
 from manuallabour.cl.utils import FileCache
-from manuallabour.cl.importers.base import *
+from manuallabour.cl.importers.common import GraphScaffolding
 
-def load_graph(input_file,store,clear_cache):
-    inst = list(yaml.load_all(open(input_file,"r","utf8")))[0]
-
-    validate(inst,'ml.json')
-
-    basedir = dirname(input_file)
-
-    basic_imp = BasicSyntaxImporter()
-    ref_imp = ReferenceImporter()
-
+def load_graph(input_file,store):
     importers = []
+    basedir = dirname(input_file)
     for ep in iter_entry_points('importers'):
         importers.append(ep.load()(basedir))
 
@@ -39,37 +31,9 @@ def load_graph(input_file,store,clear_cache):
     if not exists(cachedir):
         makedirs(cachedir)
 
-    steps = {}
+    scaf = GraphScaffolding(input_file,store,FileCache(cachedir),importers)
 
-    # base syntax
-    for step_alias in inst["steps"]:
-        basic_imp.process(step_alias,inst,steps,store,None)
-
-    # importers
-    with FileCache(cachedir) as fc:
-        for imp in importers:
-            for step_alias,step_dict in inst["steps"].iteritems():
-                imp.process(step_alias,inst,steps,store,fc)
-
-    # resolve references
-    for step_alias in inst["steps"]:
-        ref_imp.process(step_alias,inst,steps,store,None)
-
-    # create steps
-    graph_steps = []
-    step_alia = {}
-    for alias, step_dict in steps.iteritems():
-        requires = step_dict.pop("requires",[])
-
-        step_id = Step.calculate_checksum(**step_dict)
-        store.add_step(Step(step_id=step_id,**step_dict))
-
-        step_alia[alias] = step_id
-
-        graph_steps.append(dict(step_id=step_id,requires=requires))
-
-    graph_id = Graph.calculate_checksum(steps=graph_steps)
-    return Graph(graph_id=graph_id,steps=graph_steps), step_alia
+    return scaf.get_graph()
 
 @click.group()
 def cli():
@@ -102,7 +66,7 @@ def render(output,format,layout,input_file):
 
     store = LocalMemoryStore()
 
-    graph,_ = load_graph(input_file,store)
+    graph = load_graph(input_file,store)
 
     schedule_steps = schedule_greedy(graph,store)
 
@@ -139,7 +103,7 @@ def upload(host,username,password,input_file,graph_name):
 
     store = LocalMemoryStore()
 
-    graph,_ = load_graph(input_file,store)
+    graph = load_graph(input_file,store)
     url = "%s%s" % (host,"%s")
     headers = {'content-type' : 'application/json'}
     auth=HTTPBasicAuth(username,password)

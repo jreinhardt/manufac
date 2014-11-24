@@ -1,33 +1,32 @@
 import unittest
+from datetime import timedelta
 
+from codecs import open
 from os import makedirs
-from os.path import join
+from os.path import join,dirname, exists
 from shutil import rmtree
 
 from manuallabour.cl.utils import FileCache
-from manuallabour.cl.importers.base import *
+from manuallabour.cl.importers.common import GraphScaffolding, parse_time, format_time
 from manuallabour.cl.importers.openscad import OpenSCADImporter
 from manuallabour.core.common import Step
+from manuallabour.core.stores import LocalMemoryStore
 from manuallabour.core.graph import GraphStep
 from manuallabour.exporters.svg import GraphSVGExporter
 
 class TestYAML(unittest.TestCase):
     def setUp(self):
-        self.basic = BasicSyntaxImporter()
         self.store = LocalMemoryStore()
-        self.steps = {}
-        self.name = "test"
+        cachedir = join('tests/output/.mlcache')
+        if not exists(cachedir):
+            makedirs(cachedir)
+        self.cache = FileCache(cachedir)
+        self.cache.clear()
+        self.name = None
+        self.scaf = None
 
     def tearDown(self):
-        steps = []
-        for alias,step_dict in self.steps.iteritems():
-            requires = step_dict.pop("requires",[])
-            step_id = Step.calculate_checksum(**step_dict)
-            self.store.add_step(Step(step_id=step_id,**step_dict))
-
-            steps.append(dict(step_id=step_id,requires=requires))
-
-        g = Graph(graph_id="dummy",steps=steps)
+        g = self.scaf.get_graph()
         e = GraphSVGExporter(with_resources=True,with_objects=True)
         e.export(
             g,
@@ -38,60 +37,33 @@ class TestYAML(unittest.TestCase):
         )
 
     def test_init(self):
-        inst = list(
-            yaml.load_all(open('tests/yaml/simple.yaml',"r","utf8"))
-        )[0]
-
         self.name = "simple"
-
-        for step_id in inst["steps"]:
-            self.basic.process(step_id,inst,self.steps,self.store,None)
+        self.scaf = GraphScaffolding(
+            'tests/yaml/simple.yaml',
+            self.store,
+            self.cache,
+            []
+        )
 
     def test_refs(self):
-        inst = list(
-            yaml.load_all(open('tests/yaml/refs.yaml',"r","utf8"))
-        )[0]
-
         self.name = "refs"
-
-        ref_imp = ReferenceImporter()
-
-        for step_id in inst["steps"]:
-            self.basic.process(step_id,inst,self.steps,self.store,None)
-
-        for step_id in inst["steps"]:
-            ref_imp.process(step_id,inst,self.steps,self.store,None)
+        self.scaf = GraphScaffolding(
+            'tests/yaml/refs.yaml',
+            self.store,
+            self.cache,
+            []
+        )
 
     def test_openscad(self):
-        inst = list(
-            yaml.load_all(open('tests/yaml/openscad.yaml',"r","utf8"))
-        )[0]
-
-        self.name = "openscad"
-
-        cachedir  = join('tests','cache',self.name)
-        rmtree(cachedir,True)
-        makedirs(cachedir)
-
-        basic_imp = BasicSyntaxImporter()
-        ref_imp = ReferenceImporter()
         os_imp = OpenSCADImporter('tests/yaml')
 
-        for step_id in inst["steps"]:
-            basic_imp.process(step_id,inst,self.steps,self.store,None)
-
-        with FileCache(cachedir) as cache:
-            for step_id in inst["steps"]:
-                os_imp.process(step_id,inst,self.steps,self.store,cache)
-
-        for step_id,step_dict in inst["steps"].iteritems():
-            ref_imp.process(step_id,inst,self.steps,self.store,None)
-
-        with open(join(cachedir,'.deps')) as fid:
-            deps = json.loads(fid.read())
-        self.assertEqual(len(deps),5)
-        for dep in deps.values():
-            self.assertEqual(len(dep),2)
+        self.name = "openscad"
+        self.scaf = GraphScaffolding(
+            'tests/yaml/openscad.yaml',
+            self.store,
+            self.cache,
+            [os_imp]
+        )
 
 class TestTime(unittest.TestCase):
     def assertSeconds(self,time,seconds):
