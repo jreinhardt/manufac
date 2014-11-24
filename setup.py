@@ -20,9 +20,9 @@ setup(
     namespace_packages=['manuallabour','manuallabour.cl','manuallabour.cl.importers'],
     description='Commandline interface for Manual Labour',
     long_description=long_description,
-    install_requires = ['manuallabour','jsonschema','pyyaml'],
+    install_requires = ['manuallabour','jsonschema','pyyaml','Click'],
     entry_points={
-        'console_scripts': ['manuallabour = manuallabour.cl.commandline:main_function'],
+        'console_scripts': ['manuallabour = manuallabour.cl.commandline:cli'],
         'importers': ['openscad = manuallabour.cl.importers.openscad:OpenSCADImporter']
     }
 )

@@ -1,4 +1,4 @@
-import argparse
+import click
 import sys
 from os.path import join,dirname, exists
 from os import makedirs
@@ -7,63 +7,26 @@ from codecs import open
 from pkg_resources import iter_entry_points
 
 import yaml
+import requests
+from requests.auth import HTTPBasicAuth
+import json
 
 from manuallabour.core.schedule import schedule_greedy, Schedule
 from manuallabour.core.stores import LocalMemoryStore
 from manuallabour.core.common import Step
 from manuallabour.core.graph import Graph,GraphStep
 from manuallabour.exporters.html import SinglePageHTMLExporter
-from manuallabour.exporters.svg import GraphSVGExporter
+from manuallabour.exporters.ttn import ThingTrackerExporter
+from manuallabour.exporters.svg import GraphSVGExporter, ScheduleSVGExporter
 from manuallabour.cl.utils import FileCache
 from manuallabour.cl.importers.base import *
 
-def main_function():
-    parser = argparse.ArgumentParser(
-        description="Tool for rendering beautiful step-by-step instructions"
-    )
-    parser.add_argument(
-        'input',
-        help='input yaml file',
-        type=str
-    )
-    parser.add_argument(
-        '-o',
-        help='output directory',
-        dest='output',
-        type=str,
-        default='docs'
-    )
-    parser.add_argument(
-        '-f',
-        help='export format',
-        dest='format',
-        type=str,
-        choices=['html','text'],
-        default='html'
-    )
-    parser.add_argument(
-        '-l',
-        help='layout (for html only)',
-        dest='layout',
-        type=str,
-        default='basic'
-    )
-    parser.add_argument(
-        '-c',
-        help='clear cache before processing',
-        dest='clearcache',
-        action='store_true'
-    )
+def load_graph(input_file,store,clear_cache):
+    inst = list(yaml.load_all(open(input_file,"r","utf8")))[0]
 
-    args = vars(parser.parse_args())
-
-    inst = list(yaml.load_all(open(args['input'],"r","utf8")))[0]
-
-
-    validate
     validate(inst,'ml.json')
 
-    basedir = dirname(args['input'])
+    basedir = dirname(input_file)
 
     basic_imp = BasicSyntaxImporter()
     ref_imp = ReferenceImporter()
@@ -76,47 +39,179 @@ def main_function():
     if not exists(cachedir):
         makedirs(cachedir)
 
-    store = LocalMemoryStore()
-
     steps = {}
 
     # base syntax
-    for step_id in inst["steps"]:
-        basic_imp.process(step_id,inst,steps,store,None)
+    for step_alias in inst["steps"]:
+        basic_imp.process(step_alias,inst,steps,store,None)
 
     # importers
     with FileCache(cachedir) as fc:
-        if args["clearcache"]:
+        if clear_cache:
             fc.clear()
         for imp in importers:
-            for step_id,step_dict in inst["steps"].iteritems():
-                imp.process(step_id,inst,steps,store,fc)
+            for step_alias,step_dict in inst["steps"].iteritems():
+                imp.process(step_alias,inst,steps,store,fc)
 
     # resolve references
-    for step_id in inst["steps"]:
-        ref_imp.process(step_id,inst,steps,store,None)
+    for step_alias in inst["steps"]:
+        ref_imp.process(step_alias,inst,steps,store,None)
 
     # create steps
-    graph_steps = {}
+    graph_steps = []
+    step_alia = {}
     for alias, step_dict in steps.iteritems():
         requires = step_dict.pop("requires",[])
 
         step_id = Step.calculate_checksum(**step_dict)
         store.add_step(Step(step_id=step_id,**step_dict))
 
-        graph_steps[alias] = dict(step_id=step_id,requires=requires)
+        step_alia[alias] = step_id
 
-    g = Graph(graph_id="dummy",steps=graph_steps)
+        graph_steps.append(dict(step_id=step_id,requires=requires))
 
-    schedule_steps = schedule_greedy(g,store)
+    graph_id = Graph.calculate_checksum(steps=graph_steps)
+    return Graph(graph_id=graph_id,steps=graph_steps), step_alia
+
+@click.group()
+def cli():
+    """
+    """
+    pass
+
+@cli.command()
+@click.option('-o','--output',type=click.Path(exists=False,file_okay=False,dir_okay=True),default='docs')
+@click.option('-f','--format',type=click.Choice(['html','ttn']),default='html')
+@click.option('-l','--layout',default='basic')
+@click.option('--clear-cache/--no-clear-cache',default=False)
+@click.argument('input_file',type=click.Path(exists=True))
+def render(output,format,layout,clear_cache,input_file):
+    """
+    Render the instructions
+    """
+    inst = list(yaml.load_all(open(input_file,"r","utf8")))[0]
+
+    store = LocalMemoryStore()
+
+    graph,_ = load_graph(input_file,store,clear_cache)
+
+    schedule_steps = schedule_greedy(graph,store)
 
     s = Schedule(sched_id="dummy",steps = schedule_steps)
 
     data = dict(title=inst["title"],author="John Doe")
 
-    e = SinglePageHTMLExporter(args['layout'])
-    e.export(s,store,args['output'],**data)
+    if format == "html":
+        e = SinglePageHTMLExporter(layout)
+        e.export(s,store,output,**data)
 
-    e = GraphSVGExporter(with_resources=True,with_objects=True)
-    e.export(g,store,join(args['output'],'graph.svg'),**data)
+        e = ScheduleSVGExporter(with_resources=True,with_objects=True)
+        e.export(s,store,join(output,'schedule.svg'),**data)
 
+        e = GraphSVGExporter(with_resources=True,with_objects=True)
+        e.export(graph,store,join(output,'graph.svg'),**data)
+    elif format == "ttn":
+        e = ThingTrackerExporter()
+
+        e.export(s,store,join(output,'tracker.json'),**data)
+
+@cli.command()
+@click.option('-h','--host',default='http://flask.dev:5000/')
+@click.option('--clear-cache/--no-clear-cache',default=False)
+@click.option('--username',prompt=True)
+@click.option('--password',prompt=True, hide_input=True)
+@click.argument('input_file',type=click.Path(exists=True))
+@click.argument('graph_name')
+def upload(host,clear_cache,username,password,input_file,graph_name):
+    """
+    Upload the instruction to a cadinet
+    """
+
+    inst = list(yaml.load_all(open(input_file,"r","utf8")))[0]
+
+    store = LocalMemoryStore()
+
+    graph,_ = load_graph(input_file,store,clear_cache)
+    url = "%s%s" % (host,"%s")
+    headers = {'content-type' : 'application/json'}
+    auth=HTTPBasicAuth(username,password)
+
+    #check what needs to be uploaded
+    ids = graph.collect_ids(store)
+    ids["graph_ids"] = [graph.graph_id]
+    r = requests.get(
+        url % "exist",
+        data=json.dumps(ids),
+        auth=auth,
+        headers=headers
+    )
+    print r.content
+    unknown = r.json()
+
+    #upload blobs
+    for blob_id in unknown["blob_ids"]:
+        path = store.get_blob_url(blob_id)
+        fid = urlopen(store.get_blob_url(blob_id))
+        files = {'file' : (basename(path),fid)}
+        r = requests.post(
+            url % "upload/blob",
+            files=files,
+            auth=auth
+        )
+        assert(r.json()["blob_id"]==blob_id)
+    if unknown["blob_ids"]:
+        print "Uploaded %d blobs" % len(unknown["blob_ids"])
+
+    #upload objects
+    for obj_id in unknown["obj_ids"]:
+        data = store.get_obj(obj_id).as_dict()
+        data.pop("obj_id")
+        r = requests.post(
+            url % "upload/object",
+            data = json.dumps(data),
+            auth=auth,
+            headers=headers
+        )
+        assert(r.json()["obj_id"]==obj_id)
+    if unknown["obj_ids"]:
+        print "Uploaded %d objects" % len(unknown["obj_ids"])
+
+    #upload steps
+    for step_id in unknown["step_ids"]:
+        data = store.get_step(step_id).as_dict()
+        data.pop("step_id")
+        r = requests.post(
+            url % "upload/step",
+            data = json.dumps(data),
+            auth=auth,
+            headers=headers
+        )
+        assert(r.json()["step_id"]==step_id)
+    if unknown["step_ids"]:
+        print "Uploaded %d steps" % len(unknown["step_ids"])
+
+    #upload graph
+    if unknown["graph_ids"]:
+        data = g.as_dict()
+        data.pop("graph_id")
+        r = requests.post(
+            url % "upload/graph",
+            data = json.dumps(data),
+            auth=auth,
+            headers=headers
+        )
+        assert(r.json()["graph_id"]==graph.graph_id)
+        print "Uploaded graph with id: %s" % graph.graph_id
+
+    #register graph
+    r = requests.post(
+        url % ("graphs/%s/%s" % (username,graph_name)),
+        data = json.dumps({
+            "graph_id" : graph.graph_id,
+            "title" : inst["title"],
+            "author" : "John Doe"
+        }),
+        auth=auth,
+        headers=headers
+    )
+    print "Registered graph as %s" % graph_name
