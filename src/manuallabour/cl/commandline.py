@@ -16,7 +16,7 @@ from manuallabour.core.stores import LocalMemoryStore
 from manuallabour.core.common import Step
 from manuallabour.core.graph import Graph,GraphStep
 from manuallabour.exporters.html import SinglePageHTMLExporter
-from manuallabour.exporters.ttn import ThingTrackerExporter
+from manuallabour.exporters.gantt import GanttExporter
 from manuallabour.exporters.svg import GraphSVGExporter, ScheduleSVGExporter
 from manuallabour.cl.utils import FileCache
 from manuallabour.cl.importers.common import GraphScaffolding
@@ -80,6 +80,9 @@ def render(output,format,layout,input_file):
 
         e = ScheduleSVGExporter(with_resources=True,with_objects=True)
         e.export(s,store,join(output,'schedule.svg'),**data)
+
+        e = GanttExporter()
+        e.export(s,store,join(output,'gantt.svg'),**data)
 
         e = GraphSVGExporter(with_resources=True,with_objects=True)
         e.export(graph,store,join(output,'graph.svg'),**data)
