@@ -5,7 +5,7 @@ import json
 import jsonschema
 from codecs import open
 
-from os.path import join,dirname, exists, abspath, splitext
+from os.path import join,dirname, exists, abspath, splitext, basename
 import yaml
 
 import manuallabour.core.common as common

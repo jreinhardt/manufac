@@ -12,6 +12,8 @@ steps:
       img: {filename: tests/input/foobar.png, alt: A foobar}
     tools:
       tdp: {name: Quabuble, quantity: 1, images: [{filename: tests/input/foobar.png, alt: A foobar}]}
+    files:
+      fub: {path: tests/input/foobar.png}
     parts:
       nut: {name: Nut, quantity: 2}
       onut: {name: Nut, quantity: 2, optional: True}
