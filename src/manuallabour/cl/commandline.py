@@ -1,10 +1,11 @@
 import click
 import sys
-from os.path import join,dirname, exists
+from os.path import join,dirname, exists, basename
 from os import makedirs
 from copy import copy
 from codecs import open
 from pkg_resources import iter_entry_points
+from urllib import urlopen
 
 import yaml
 import requests
@@ -120,7 +121,6 @@ def upload(host,username,password,input_file,graph_name):
         auth=auth,
         headers=headers
     )
-    print r.content
     unknown = r.json()
 
     #upload blobs
@@ -167,7 +167,7 @@ def upload(host,username,password,input_file,graph_name):
 
     #upload graph
     if unknown["graph_ids"]:
-        data = g.as_dict()
+        data = graph.as_dict()
         data.pop("graph_id")
         r = requests.post(
             url % "upload/graph",
