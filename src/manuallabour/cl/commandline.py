@@ -5,6 +5,7 @@ from os import makedirs
 from copy import copy
 from codecs import open
 from pkg_resources import iter_entry_points
+import pkg_resources
 from urllib import urlopen
 
 import yaml
@@ -76,7 +77,11 @@ def render(output,format,layout,input_file):
     data = dict(title=inst["title"],author="John Doe")
 
     if format == "html":
-        e = SinglePageHTMLExporter(layout)
+        layout_path = pkg_resources.resource_filename(
+            'manuallabour.layouts.html_single.%s' % layout,
+            'template'
+        )
+        e = SinglePageHTMLExporter(layout_path)
         e.export(s,store,output,**data)
 
         e = ScheduleSVGExporter(with_resources=True,with_objects=True)
