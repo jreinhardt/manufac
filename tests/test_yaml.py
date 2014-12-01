@@ -65,6 +65,12 @@ class TestYAML(unittest.TestCase):
             [os_imp]
         )
 
+        print self.scaf.steps_out['s1']['images']
+        self.assertEqual(
+            len(self.scaf.steps_out['s1']['images']['chb']['sourcefiles']),
+            2
+        )
+
 class TestTime(unittest.TestCase):
     def assertSeconds(self,time,seconds):
         self.assertEqual(timedelta(**parse_time(time)).total_seconds(),seconds)
