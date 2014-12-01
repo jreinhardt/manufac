@@ -92,4 +92,4 @@ class FileCache:
             self.dependencies[target_id] = callback(target_path,**kwargs)
             utime(target_path,None)
 
-        return target_path
+        return target_path, self.dependencies[target_id]

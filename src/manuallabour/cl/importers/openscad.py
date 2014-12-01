@@ -6,6 +6,7 @@ import hashlib
 from os.path import basename, splitext
 
 import manuallabour.core.common as common
+from manuallabour.core.common import calculate_blob_checksum
 
 class OpenSCADImporter(ImporterBase):
     def __init__(self,basedir):
@@ -98,40 +99,62 @@ class OpenSCADImporter(ImporterBase):
 
             if "images" in openscad:
                 for id,item in openscad["images"].iteritems():
-                    path = scaf.cache.process(
+                    path,deps = scaf.cache.process(
                         self._image,
                         importer='openscad',
                         extension='.png',
                         **item)
                     with open(path,'rb') as fid:
-                        blob_id = common.calculate_blob_checksum(fid)
+                        blob_id = calculate_blob_checksum(fid)
                     if not scaf.store.has_blob(blob_id):
                         scaf.store.add_blob(blob_id,path)
 
                     img_dict = dict(
                         blob_id=blob_id,
                         extension='.png',
-                        alt='Render of %s' % item['scadfile']
+                        alt='Render of %s' % item['scadfile'],
+                        sourcefiles=[]
                     )
+                    if not deps is None:
+                        for dep in deps:
+                            with open(dep,'rb') as fid:
+                                dep_id = calculate_blob_checksum(fid)
+                            if not scaf.store.has_blob(dep_id):
+                                scaf.store.add_blob(dep_id,dep)
+                            img_dict["sourcefiles"].append(dict(
+                                blob_id=dep_id,
+                                filename=basename(dep)
+                            ))
 
                     out['images'][id] = img_dict
 
             if "files" in openscad:
                 for id,item in openscad["files"].iteritems():
-                    path = scaf.cache.process(
+                    path,deps = scaf.cache.process(
                         self._file,
                         importer='openscad',
                         extension=splitext(item['filename'])[1],
                         **item)
                     with open(path,'rb') as fid:
-                        blob_id = common.calculate_blob_checksum(fid)
+                        blob_id = calculate_blob_checksum(fid)
                     if not scaf.store.has_blob(blob_id):
                         scaf.store.add_blob(blob_id,path)
 
                     file_dict = dict(
                         blob_id=blob_id,
-                        filename=item['filename']
+                        filename=item['filename'],
+                        sourcefiles=[]
                     )
+                    if not deps is None:
+                        for dep in deps:
+                            with open(dep,'rb') as fid:
+                                dep_id = calculate_blob_checksum(fid)
+                            if not scaf.store.has_blob(dep_id):
+                                scaf.store.add_blob(dep_id,dep)
+                            file_dict["sourcefiles"].append(dict(
+                                blob_id=dep_id,
+                                filename=basename(dep)
+                            ))
 
                     out['files'][id] = file_dict
 
@@ -147,21 +170,32 @@ class OpenSCADImporter(ImporterBase):
                         optional = item.pop('optional',False)
 
                         #create image
-                        path = scaf.cache.process(
+                        path, deps = scaf.cache.process(
                             self._image,
                             importer='openscad',
                             extension='.png',
                             **item)
                         with open(path,'rb') as fid:
-                            blob_id = common.calculate_blob_checksum(fid)
+                            blob_id = calculate_blob_checksum(fid)
                         if not scaf.store.has_blob(blob_id):
                             scaf.store.add_blob(blob_id,path)
 
                         img_dict = dict(
                             blob_id=blob_id,
                             extension='.png',
-                            alt="Render of %s" % obj_dict["name"]
+                            alt="Render of %s" % obj_dict["name"],
+                            sourcefiles=[]
                         )
+                        if not deps is None:
+                            for dep in deps:
+                                with open(dep,'rb') as fid:
+                                    dep_id = calculate_blob_checksum(fid)
+                                if not scaf.store.has_blob(dep_id):
+                                    scaf.store.add_blob(dep_id,dep)
+                                img_dict["sourcefiles"].append(dict(
+                                    blob_id=dep_id,
+                                    filename=basename(dep)
+                                ))
 
                         obj_dict["images"] = [img_dict]
 
