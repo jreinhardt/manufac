@@ -1,11 +1,9 @@
 import click
 import sys
-from os.path import join,dirname, exists, basename
+from os.path import join,dirname, exists, basename, splitext
 from os import makedirs
 from copy import copy
 from codecs import open
-from pkg_resources import iter_entry_points
-import pkg_resources
 from urllib import urlopen
 
 import yaml
@@ -13,29 +11,18 @@ import requests
 from requests.auth import HTTPBasicAuth
 import json
 
-from manuallabour.core.schedule import schedule_greedy, Schedule
 from manuallabour.core.stores import LocalMemoryStore
-from manuallabour.core.common import Step
-from manuallabour.core.graph import Graph,GraphStep
+from manuallabour.core.schedule import schedule_greedy, schedule_topological, Schedule
 from manuallabour.exporters.html import SinglePageHTMLExporter
 from manuallabour.exporters.gantt import GanttExporter
 from manuallabour.exporters.svg import GraphSVGExporter, ScheduleSVGExporter
+
 from manuallabour.cl.utils import FileCache
-from manuallabour.cl.importers.common import GraphScaffolding
 
-def load_graph(input_file,store):
-    importers = []
-    basedir = dirname(input_file)
-    for ep in iter_entry_points('importers'):
-        importers.append(ep.load()(basedir))
+import pkg_resources
 
-    cachedir = join(basedir,'.mlcache')
-    if not exists(cachedir):
-        makedirs(cachedir)
-
-    scaf = GraphScaffolding(input_file,store,FileCache(cachedir),importers)
-
-    return scaf.get_graph()
+import yaml_loader
+import pv_loader
 
 @click.group()
 def cli():
@@ -64,17 +51,25 @@ def render(output,format,layout,input_file):
     """
     Render the instructions
     """
-    inst = list(yaml.load_all(open(input_file,"r","utf8")))[0]
-
     store = LocalMemoryStore()
 
-    graph = load_graph(input_file,store)
+    ext = splitext(input_file)[1]
+    if ext == ".yaml":
+        inst = list(yaml.load_all(open(input_file,"r","utf8")))[0]
+        graph = yaml_loader.load_graph(input_file,store)
+        title = inst["title"]
+    elif ext == ".pv":
+        basedir = dirname(input_file)
+        graph = pv_loader.load_graph(input_file,store,basedir)
+        title = "Test"
 
-    schedule_steps = schedule_greedy(graph,store)
-
+    try:
+        schedule_steps = schedule_greedy(graph,store)
+    except:
+        schedule_steps = schedule_topological(graph,store)
     s = Schedule(sched_id="dummy",steps = schedule_steps)
 
-    data = dict(title=inst["title"],author="John Doe")
+    data = dict(title=title,author="John Doe")
 
     if format == "html":
         layout_path = pkg_resources.resource_filename(
@@ -86,9 +81,6 @@ def render(output,format,layout,input_file):
 
         e = ScheduleSVGExporter(with_resources=True,with_objects=True)
         e.export(s,store,join(output,'schedule.svg'),**data)
-
-        e = GanttExporter()
-        e.export(s,store,join(output,'gantt.svg'),**data)
 
         e = GraphSVGExporter(with_resources=True,with_objects=True)
         e.export(graph,store,join(output,'graph.svg'),**data)
