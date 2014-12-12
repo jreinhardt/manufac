@@ -1,4 +1,4 @@
-from manuallabour.cl.importers.common import ImporterBase
+from manufac.importers.common import ImporterBase
 from tempfile import mkstemp
 from subprocess import call
 import os

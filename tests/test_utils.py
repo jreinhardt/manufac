@@ -5,7 +5,7 @@ from shutil import rmtree
 from codecs import open
 from time import sleep
 
-from manuallabour.cl.utils import *
+from manufac.utils import *
 
 class CallCounter:
     def __init__(self,callback):

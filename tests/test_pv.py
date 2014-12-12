@@ -1,6 +1,6 @@
 from manuallabour.core.stores import LocalMemoryStore
-from manuallabour.cl.pv_loader import verse, load_graph
 from manuallabour.exporters.svg import GraphSVGExporter
+from manufac.pv_loader import verse, load_graph
 from os.path import join,dirname, exists, basename
 from unittest import TestCase
 from pprint import pformat

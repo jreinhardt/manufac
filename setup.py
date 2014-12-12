@@ -13,16 +13,19 @@ with open(path.join(here, 'version'), encoding='utf-8') as f:
     version = f.read().strip()
 
 setup(
-    name='manuallabour-cl',
+    name='manufac',
     version=version,
     packages=find_packages("src"),
     package_dir={"" : "src"},
-    namespace_packages=['manuallabour','manuallabour.cl','manuallabour.cl.importers'],
     description='Commandline interface for Manual Labour',
     long_description=long_description,
-    install_requires = ['manuallabour','jsonschema','pyyaml','Click'],
+    install_requires = ['manuallabour','jsonschema','requests','Click'],
+    extras_require = {
+        'yaml': ['pyyaml'],
+        'pv': ['pyparsing']
+    },
     entry_points={
-        'console_scripts': ['manuallabour = manuallabour.cl.commandline:cli'],
-        'importers': ['openscad = manuallabour.cl.importers.openscad:OpenSCADImporter']
+        'console_scripts': ['manufac = manufac.commandline:cli'],
+        'importers': ['openscad = manufac.importers.openscad:OpenSCADImporter']
     }
 )

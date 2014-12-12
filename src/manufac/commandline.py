@@ -17,7 +17,7 @@ from manuallabour.exporters.html import SinglePageHTMLExporter
 from manuallabour.exporters.gantt import GanttExporter
 from manuallabour.exporters.svg import GraphSVGExporter, ScheduleSVGExporter
 
-from manuallabour.cl.utils import FileCache
+from manufac.utils import FileCache
 
 import pkg_resources
 

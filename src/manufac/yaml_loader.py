@@ -3,8 +3,8 @@ from os.path import join,dirname, exists, basename
 from pkg_resources import iter_entry_points
 import pkg_resources
 
-from manuallabour.cl.utils import FileCache
-from manuallabour.cl.importers.common import GraphScaffolding
+from manufac.utils import FileCache
+from manufac.importers.common import GraphScaffolding
 
 def load_graph(input_file,store):
     importers = []

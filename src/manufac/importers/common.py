@@ -10,7 +10,7 @@ import yaml
 
 import manuallabour.core.common as common
 
-schema_dir = pkg_resources.resource_filename('manuallabour.cl','schema')
+schema_dir = pkg_resources.resource_filename('manufac','schema')
 
 TIME_RE = re.compile("(?:(\d*)\s?d(?:ays?)?\s?)?(?:(\d*)\s?h(?:ours?)?\s?)?(?:(\d*)\s?m(?:in(?:ute)?s?)?\s?)?(?:(\d*) ?s(?:econds?)?)?")
 TIME_ZIP = ('days','hours','minutes','seconds')

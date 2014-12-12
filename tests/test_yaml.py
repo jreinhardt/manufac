@@ -6,9 +6,9 @@ from os import makedirs
 from os.path import join,dirname, exists
 from shutil import rmtree
 
-from manuallabour.cl.utils import FileCache
-from manuallabour.cl.importers.common import GraphScaffolding, parse_time, format_time
-from manuallabour.cl.importers.openscad import OpenSCADImporter
+from manufac.utils import FileCache
+from manufac.importers.common import GraphScaffolding, parse_time, format_time
+from manufac.importers.openscad import OpenSCADImporter
 from manuallabour.core.common import Step
 from manuallabour.core.stores import LocalMemoryStore
 from manuallabour.core.graph import GraphStep
