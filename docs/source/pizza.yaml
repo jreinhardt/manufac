@@ -1,0 +1,49 @@
+title: Pizza
+description: Instructions for delicious pizza.
+steps:
+  s1:
+    title: Add ingredients
+    description: Put {{part(sauce,text=tomato sauce)}} and if you want {{part(mushrooms)}} on the {{part(dough)}}
+    duration: 5m
+    parts:
+      sauce: {name: Tomato Sauce, description: Delicious tomato sauce}
+      mushrooms: {name: Mushrooms, quantity: 5, optional: true}
+      dough: {name: Pizza dough}
+  s2:
+    title: Add cheese
+    requires: s1
+    description: Use the {{tool(grater)}} to distribute some {{part(cheese)}} over the pizza
+    duration: 5min
+    parts:
+      cheese:
+        name: Cheese
+        description: Cheese for the pizza, preferably Mozzarella
+    tools:
+      grater: {name: Cheese Grater}
+    results:
+      raw: {name: Raw Pizza}
+  s3:
+    title: Preheat oven
+    description: Preheate the {{tool(oven)}} to 230 degree C
+    duration: 1m
+    waiting: 10 minutes
+    tools:
+      oven:
+        name: Oven
+        description: An oven capable of reaching 230 degrees celsius
+  s4:
+    title: Bake it
+    requires: [s2, s3]
+    description: Put the {{part(raw)}} in the {{tool(oven)}} and bake it
+    duration: 60 s
+    waiting: 20 mins
+    parts:
+      raw: {ref: s2.results.raw}
+    tools:
+      oven:
+        name: Oven
+        description: An oven capable of reaching 230 degrees celsius
+    results:
+      pizza: {name: Finished pizza}
+
+

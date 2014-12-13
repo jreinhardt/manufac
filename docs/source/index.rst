@@ -6,16 +6,23 @@
 Welcome to manufac's documentation!
 ===================================
 
+manufac is a commandlinetool to process and render beautiful step-by-step
+instructions. It is based on `manual labour
+<https://github.com/jreinhardt/manual-labour>`_, which does all the heavy
+lifting in the background.
+
 Contents:
 
 .. toctree::
    :maxdepth: 2
 
+   quickstart
+
 
 
 .. todo:: How to write a plugin
 
-
+.. todolist::
 
 Indices and tables
 ==================
