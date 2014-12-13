@@ -31,6 +31,7 @@ number_digits = Word(nums).setParseAction(lambda t: int(t[0]))
 number_phrase = Or([
     CaselessLiteral(l).setParseAction(replaceWith(v)) for l,v in [
         ("a",1),
+        ("an",1),
         ("one",1),
         ("a pair",2),
         ("two",2),
@@ -61,7 +62,8 @@ preposition = Or([CaselessKeyword(p).suppress() for p in [
     "to",
     "on",
     "through",
-    "onto"]])
+    "onto",
+    "over"]])
 id_end.append(preposition)
 
 the = CaselessKeyword("the").suppress()
