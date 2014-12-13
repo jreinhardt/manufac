@@ -16,6 +16,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 from os.path import join,dirname, exists, basename
+from os import makedirs
 
 from pkg_resources import iter_entry_points
 import pkg_resources
