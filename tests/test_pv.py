@@ -22,7 +22,7 @@ class VerseTest(TestCase):
             print v
             print verse.parseString(v)
 
-class TestKroki(TestCase):
+class TestPV(TestCase):
     def setUp(self):
         self.store = LocalMemoryStore()
         self.name = None
@@ -52,6 +52,8 @@ class TestKroki(TestCase):
             self.store,
             "tests/pv"
             )
+        step_dict = self.graph.steps[2].dereference(self.store)
+        self.assertEqual(step_dict["title"],"Attach the bar")
     def test_tools(self):
         self.name = "tools"
         self.graph = load_graph(
